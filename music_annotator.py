@@ -800,15 +800,15 @@ class MainWindow(QMainWindow):
         txtHeight = 19
 
         font1 = QFont()
-        font1.setPointSize(defaultDpi / 10)
+        font1.setPointSize(defaultDpi // 10)
         font1red = QFont()
-        font1red.setPointSize(defaultDpi / 10)
+        font1red.setPointSize(defaultDpi // 10)
         #font1red.
         font2 = QFont()
-        font2.setPointSize(defaultDpi / 10)
+        font2.setPointSize(defaultDpi // 10)
         font2.setUnderline(True)
         font = QFont()
-        font.setPointSize(defaultDpi / 10)
+        font.setPointSize(defaultDpi // 10)
         #font.setFamily("Courier New")
 
         self.input_file_title = QLabel('Input MusicXML File:')
@@ -930,7 +930,7 @@ class MainWindow(QMainWindow):
         #self.consoleViewer.resize(500,10)
         self.consoleViewer.setLineWrapMode(QTextBrowser.NoWrap)
         font3 = QFont()
-        font3.setPointSize(defaultDpi / 10)
+        font3.setPointSize(defaultDpi // 10)
         font3.setFamily("Courier New")
         self.consoleViewer.setStyleSheet("color: rgb(0,0,0)")
         self.consoleViewer.setFont(font3)
