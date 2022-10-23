@@ -14,7 +14,7 @@ Run by:
 
 Load MusicXML file by pressing "BROWSE" button or Drag&Drop to the input text box,
 then choose the desired annotations.
-The tools supports the following annotations: 
+The tool supports the following annotations: 
 - Diatonic Harmonica
 - Chromatic Harmonics - 10 holes
 - Chromatic Harmonics - 12 holes
@@ -31,7 +31,9 @@ and file name will append the annotation type to the input .xml file)
 Click the "Calc" button to check the annotation and see the text for each note on the screen.
 Click the "Run" button to create the MusicXML file at the selected output folder.
 
-To render the MusicXML as graphics you can import the output MusicXML file into note sheet application (for example in *[MuseScore3](https://musescore.org/en)* you can do that by drag&drop).
+Note that the tool doesn't supports compressed MusicXML files.
+
+To render the output MusicXML as music sheet pages you can import the output MusicXML file into note sheet application (for example in *[MuseScore3](https://musescore.org/en)* you can do that by drag&drop).
 To render the arrows on the Diatonica harmonica annotations correctly use the provided Font: HarmonicaArrows.ttf.
 Install the font on your system and then choose the app to use it. 
 On MuseScore3 the font for the lyrics is selected on this menu:
