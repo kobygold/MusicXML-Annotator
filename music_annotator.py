@@ -46,7 +46,7 @@ def warndlg(title,mssg):
     msg.setStandardButtons(QMessageBox.Ok)  # msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
 
     retval = msg.exec_()
-    print("value of pressed warning dialog button:", retval)
+    #print("value of pressed warning dialog button:", retval)
     return retval
 
 
@@ -363,6 +363,66 @@ def note_to_text_DiatonicHarmonicaC(step, octave, alter, octaveShift=0):
     return name
 
 
+def note_to_text_Recorder(step, octave, alter, octaveShift=0):
+    notes = ['לה', 'סי', 'דו', 'רה', 'מי', 'פה', 'סול']
+    octaveShift -= 1  #  by default Recorder sheet is displayed at a lower octave, e.g. C5 on XML file is displayed as C4 on page
+    step_index = ord(step) - ord('A')
+    name = notes[step_index]
+    if alter == '1':
+        name = '#' + name
+        #name = name + '#'
+    elif alter == '-1':
+        name = 'b' + name
+        #name = name + 'b'
+
+    extra = {'': '', '1': '#', '-1': 'b'}
+    note = step + octave + extra[alter]
+    note = step + str(int(octave)+octaveShift) + extra[alter]
+    dct = {"C4": "11111133", "D4": "11111130", "E4": "11111100", "F4": "11111033", "G4": "11110000",          "A4": "11100000", "B4": "11000000",
+           "C5": "10100000", "D5": "00100000", "E5": "21111100", "F5": "21111030", "G5": "21110000",          "A5": "21100000", "B5": "21101100",
+           "C6": "21001100", "D6": "21011030",
+
+           "D4b": "11111131",  "E4b": "11111110", "F4b": "11111100",              "G4b": "11110130",  "A4b": "11101130",  "B4b": "11011000", "C5b": "11000000",
+           "C4#": "11111131",  "D4#": "11111110",              "E4#": "11111033", "F4#": "11110130",  "G4#": "11101130",  "A4#": "11011000",                    "B4#": "10100000",
+
+           "D5b": "01100000",  "E5b": "00111130", "F5b": "21111100",               "G5b": "21110100",    "A5b": "21101000",  "B5b": "21101130", "C6b": "21101100",
+           "C5#": "01100000",  "D5#": "00111130",             "E5#": "21111030",   "F5#": "21110100",    "G5#": "21101000",  "A5#": "21101130",                 "B5#": "21001100",
+
+           "D6b": "21211233",  "E6b": "20110130", "F6b": "?",               "G6b": "?",    "A6b": "?",  "B6b": "?",
+           "C6#": "21211233",  "D6#": "20110130",             "E6#": "?",   "F6#": "?",    "G6#": "?",  "A6#": "?",
+           }
+
+    holes_ids = dct.get(note, '?')
+
+    BG = '\u046E\n'
+    TABLE = [['\u0456', '\u0457', '\u0458', 'x'],
+             ['\u0453', '\u0454', '\u0455', 'x'],
+             ['\u0453', '\u0454', '\u0455', 'x'],
+             ['\u0456', '\u0457', '\u0458', 'x'],
+             ['\u0453', '\u0454', '\u0455', 'x'],
+             ['\u0453', '\u0454', '\u0455', 'x'],
+             ['\u0459', '\u045A', '\u045B', '\u045C'],
+             ['\u0459', '\u045A', '\u045B', '\u045C']]
+
+    if holes_ids == '?':
+        return '?'
+
+    ids = list(map(int, list(holes_ids)))
+
+    output = ''
+    for k in range(len(ids)):
+        LUT = TABLE[k]
+        i = ids[k]
+        char = LUT[i]
+        output += char + '\n'
+
+    name = name + '\n' + BG + output
+    name = name.replace('b',FLAT)
+    name = name.replace('#',SHARP)
+
+    return name
+
+
 def note_to_text_trumpet(step, octave, alter):
     notes = ['לה', 'סי', 'דו', 'רה', 'מי', 'פה', 'סול']
     step_index = ord(step) - ord('A')
@@ -373,6 +433,10 @@ def note_to_text_trumpet(step, octave, alter):
     elif alter == '-1':
         name = 'b' + name
         #name = name + 'b'
+    elif alter == '':
+        pass
+    else:
+        warndlg('ERROR',f'note alteration of "{alter}" is not supported!')
 
     extra = {'': '', '1': '#', '-1': 'b'}
     note = step + octave + extra[alter]
@@ -704,6 +768,8 @@ def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0):
             elif mode == 7:
                 new_text = note_to_text_tuba(step, octave, alter)
             elif mode == 8:
+                new_text = note_to_text_Recorder(step, octave, alter, 0)
+            elif mode == 9:
                 new_text = note_to_text_english(step, octave, alter)
             else:
                 warndlg('ERROR', 'Text mode not supported!')
@@ -865,8 +931,8 @@ class MainWindow(QMainWindow):
         self.text_mode_title.setFont(font1)
         self.text_mode_title.setFixedWidth(titleWidth)
         self.text_mode_combo = QComboBox(self)
-        items = ['Hebrew Names','Chromatic Harmonica 10','Chromatic Harmonica 12','Chromatic Harmonica 16','Diatonic Harmonica (C)', 'Trumpet+Hebrew', 'Baritone+Hebrew', 'Tuba+Hebrew', 'English+Hebrew']  # first one is the default one
-        self.out_postfix = ['Hebrew','Chromatic10','Chromatic12','Chromatic16','DiatonicC','Trumpet','Baritone','Tuba','English']  # name extension for outfile
+        items = ['Hebrew Names','Chromatic Harmonica 10','Chromatic Harmonica 12','Chromatic Harmonica 16','Diatonic Harmonica (C)', 'Trumpet+Hebrew', 'Baritone+Hebrew', 'Tuba+Hebrew', 'Recorder+Hebrew', 'English+Hebrew']  # first one is the default one
+        self.out_postfix = ['Hebrew','Chromatic10','Chromatic12','Chromatic16','DiatonicC','Trumpet','Baritone','Tuba','Recorder','English']  # name extension for outfile
         self.text_mode_combo.addItems(items)
         self.text_mode_combo.activated.connect(self.combo_activated)
         self.text_mode_combo.setFont(font1)
@@ -1090,7 +1156,16 @@ class MainWindow(QMainWindow):
             self.summary1_text.setVisible(True)
             self.summary4_title.setVisible(True)
             self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 8:  # English text
+        elif self.text_mode_combo.currentIndex() == 8:  # Recorder text
+            self.summary1_title.setText('- Total Amount of Notes:')
+            self.summary1_text.setText('')
+            self.summary4_title.setText('- Impossible Notes Count:')
+            self.summary4_text.setText('')
+            self.summary1_title.setVisible(True)
+            self.summary1_text.setVisible(True)
+            self.summary4_title.setVisible(True)
+            self.summary4_text.setVisible(True)
+        elif self.text_mode_combo.currentIndex() == 9:  # English text
             self.summary1_title.setText('- Total Amount of Notes:')
             self.summary1_text.setText('')
             self.summary1_title.setVisible(True)
@@ -1268,7 +1343,12 @@ class MainWindow(QMainWindow):
             self.summary1_text.setText(total_count)
             self.summary4_title.setText('- Impossible Notes Count:')
             self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 8:  # english text
+        elif self.text_mode_combo.currentIndex() == 8:  # Recorder text
+            self.summary1_title.setText('- Total Amount of Notes:')
+            self.summary1_text.setText(total_count)
+            self.summary4_title.setText('- Impossible Notes Count:')
+            self.summary4_text.setText(impossibles_count)
+        elif self.text_mode_combo.currentIndex() == 9:  # english text
             self.summary1_title.setText('- Total Amount of Notes:')
             self.summary1_text.setText(total_count)
 

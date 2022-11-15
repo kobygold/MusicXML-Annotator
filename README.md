@@ -22,6 +22,7 @@ The tool supports the following annotations:
 - Trumpet
 - Tuba
 - Baritone
+- Recorder (Baroque Recorder)
 - Hebrew Note Names
 - English+Hebrew Note Names
 
@@ -47,13 +48,16 @@ The GUI:
 ![Tux, the GUI](/screenshots/screenshot-gui.png)
 
 Input example - clean notes (no annotations):
-![Tux, the GUI](/screenshots/screenshot-clean.png)
+![Tux, notes example](/screenshots/screenshot-clean.png)
 
 Output example - Diatonic Harmonica (similar to Tomlin's style):
-![Tux, the GUI](/screenshots/screenshot-dharmonica.png)
+![Tux, Diatonic Harmonica Annotations](/screenshots/screenshot-dharmonica.png)
 
 Output example - Trumpet buttons (notes that are not playable on the Trumpet are marked with "?"):
-![Tux, the GUI](/screenshots/screenshot-trumpet.png)
+![Tux, Trumpet Annotations](/screenshots/screenshot-trumpet.png)
+
+Output example - Recorder holes (notes that are not playable on the Recorder are marked with "?"):
+![Tux, Recorder Annotations](/screenshots/screenshot-recorder.png)
 
 Output example - English+Hebrew note names:
-![Tux, the GUI](/screenshots/screenshot-eng.png)
+![Tux, Hebrew+English Annotations](/screenshots/screenshot-eng.png)
