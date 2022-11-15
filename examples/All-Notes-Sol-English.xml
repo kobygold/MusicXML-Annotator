@@ -4,7 +4,7 @@
   <identification>
     <encoding>
       <software>MuseScore 3.6.2</software>
-      <encoding-date>2022-10-22</encoding-date>
+      <encoding-date>2022-11-15</encoding-date>
       <supports element="accidental" type="yes"/>
       <supports element="beam" type="yes"/>
       <supports element="print" attribute="new-page" type="yes" value="yes"/>
@@ -53,7 +53,7 @@
       </score-part>
     </part-list>
   <part id="P1">
-    <measure number="1" width="142.96">
+    <measure number="1" width="136.54">
       <print>
         <system-layout>
           <system-margins>
@@ -77,7 +77,7 @@
           <line>2</line>
           </clef>
         </attributes>
-      <note default-x="84.22" default-y="-85.00">
+      <note default-x="77.22" default-y="-85.00">
         <pitch>
           <step>C</step>
           <octave>3</octave>
@@ -99,7 +99,7 @@ C3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="2" width="104.34">
+    <measure number="2" width="104.92">
       <note default-x="24.46" default-y="-85.00">
         <pitch>
           <step>C</step>
@@ -117,7 +117,7 @@ C3</text>
 C3♯</text>
           </lyric>
         </note>
-      <note default-x="63.50" default-y="-80.00">
+      <note default-x="63.79" default-y="-80.00">
         <pitch>
           <step>D</step>
           <alter>-1</alter>
@@ -135,7 +135,7 @@ D3♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="3" width="75.24">
+    <measure number="3" width="75.82">
       <note default-x="16.50" default-y="-80.00">
         <pitch>
           <step>D</step>
@@ -158,7 +158,7 @@ D3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="4" width="104.34">
+    <measure number="4" width="104.92">
       <note default-x="24.46" default-y="-80.00">
         <pitch>
           <step>D</step>
@@ -176,7 +176,7 @@ D3</text>
 D3♯</text>
           </lyric>
         </note>
-      <note default-x="63.50" default-y="-75.00">
+      <note default-x="63.79" default-y="-75.00">
         <pitch>
           <step>E</step>
           <alter>-1</alter>
@@ -194,7 +194,7 @@ E3♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="5" width="75.24">
+    <measure number="5" width="75.82">
       <note default-x="16.50" default-y="-75.00">
         <pitch>
           <step>E</step>
@@ -217,7 +217,7 @@ E3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="6" width="75.24">
+    <measure number="6" width="75.82">
       <note default-x="16.50" default-y="-70.00">
         <pitch>
           <step>F</step>
@@ -240,7 +240,7 @@ F3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="7" width="104.34">
+    <measure number="7" width="104.92">
       <note default-x="24.46" default-y="-70.00">
         <pitch>
           <step>F</step>
@@ -258,7 +258,7 @@ F3</text>
 F3♯</text>
           </lyric>
         </note>
-      <note default-x="63.50" default-y="-65.00">
+      <note default-x="63.79" default-y="-65.00">
         <pitch>
           <step>G</step>
           <alter>-1</alter>
@@ -276,7 +276,7 @@ G3♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="8" width="75.24">
+    <measure number="8" width="75.82">
       <note default-x="16.50" default-y="-65.00">
         <pitch>
           <step>G</step>
@@ -299,7 +299,7 @@ G3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="9" width="104.34">
+    <measure number="9" width="104.92">
       <note default-x="24.46" default-y="-65.00">
         <pitch>
           <step>G</step>
@@ -317,7 +317,7 @@ G3</text>
 G3♯</text>
           </lyric>
         </note>
-      <note default-x="63.50" default-y="-60.00">
+      <note default-x="63.79" default-y="-60.00">
         <pitch>
           <step>A</step>
           <alter>-1</alter>
@@ -335,7 +335,7 @@ A3♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="10" width="75.24">
+    <measure number="10" width="75.82">
       <note default-x="16.50" default-y="-60.00">
         <pitch>
           <step>A</step>
@@ -358,7 +358,7 @@ A3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="11" width="104.34">
+    <measure number="11" width="104.92">
       <note default-x="24.46" default-y="-60.00">
         <pitch>
           <step>A</step>
@@ -376,7 +376,7 @@ A3</text>
 A3♯</text>
           </lyric>
         </note>
-      <note default-x="63.50" default-y="-55.00">
+      <note default-x="63.79" default-y="-55.00">
         <pitch>
           <step>B</step>
           <alter>-1</alter>
@@ -394,7 +394,7 @@ B3♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="12" width="75.24">
+    <measure number="12" width="75.82">
       <note default-x="16.50" default-y="-55.00">
         <pitch>
           <step>B</step>
@@ -417,12 +417,12 @@ B3</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="13" width="137.87">
+    <measure number="13" width="132.03">
       <print new-system="yes">
         <system-layout>
           <system-margins>
             <left-margin>0.00</left-margin>
-            <right-margin>-0.00</right-margin>
+            <right-margin>0.00</right-margin>
             </system-margins>
           <system-distance>150.00</system-distance>
           </system-layout>
@@ -449,7 +449,7 @@ C4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="14" width="108.63">
+    <measure number="14" width="111.33">
       <note default-x="24.46" default-y="-50.00">
         <pitch>
           <step>C</step>
@@ -467,24 +467,25 @@ C4</text>
 C4♯</text>
           </lyric>
         </note>
-      <note default-x="65.65" default-y="-50.00">
+      <note default-x="67.00" default-y="-45.00">
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>4</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯דו
-C4♯</text>
+          <text>♭רה
+D4♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="15" width="88.77">
+    <measure number="15" width="82.93">
       <note default-x="13.00" default-y="-45.00">
         <pitch>
           <step>D</step>
@@ -507,7 +508,7 @@ D4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="16" width="96.73">
+    <measure number="16" width="106.27">
       <note default-x="20.96" default-y="-45.00">
         <pitch>
           <step>D</step>
@@ -525,24 +526,25 @@ D4</text>
 D4♯</text>
           </lyric>
         </note>
-      <note default-x="57.95" default-y="-45.00">
+      <note default-x="62.72" default-y="-40.00">
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯רה
-D4♯</text>
+          <text>♭מי
+E4♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="17" width="88.77">
+    <measure number="17" width="82.93">
       <note default-x="13.00" default-y="-40.00">
         <pitch>
           <step>E</step>
@@ -565,7 +567,7 @@ E4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="18" width="88.77">
+    <measure number="18" width="82.93">
       <note default-x="13.00" default-y="-35.00">
         <pitch>
           <step>F</step>
@@ -588,7 +590,7 @@ F4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="19" width="96.73">
+    <measure number="19" width="106.27">
       <note default-x="20.96" default-y="-35.00">
         <pitch>
           <step>F</step>
@@ -606,24 +608,25 @@ F4</text>
 F4♯</text>
           </lyric>
         </note>
-      <note default-x="57.95" default-y="-35.00">
+      <note default-x="62.72" default-y="-30.00">
         <pitch>
-          <step>F</step>
-          <alter>1</alter>
+          <step>G</step>
+          <alter>-1</alter>
           <octave>4</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯פה
-F4♯</text>
+          <text>♭סול
+G4♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="20" width="88.77">
+    <measure number="20" width="82.93">
       <note default-x="13.00" default-y="-30.00">
         <pitch>
           <step>G</step>
@@ -646,7 +649,7 @@ G4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="21" width="96.73">
+    <measure number="21" width="106.27">
       <note default-x="20.96" default-y="-30.00">
         <pitch>
           <step>G</step>
@@ -664,24 +667,25 @@ G4</text>
 G4♯</text>
           </lyric>
         </note>
-      <note default-x="57.95" default-y="-30.00">
+      <note default-x="62.72" default-y="-25.00">
         <pitch>
-          <step>G</step>
-          <alter>1</alter>
+          <step>A</step>
+          <alter>-1</alter>
           <octave>4</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯סול
-G4♯</text>
+          <text>♭לה
+A4♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="22" width="88.77">
+    <measure number="22" width="82.93">
       <note default-x="13.00" default-y="-25.00">
         <pitch>
           <step>A</step>
@@ -704,7 +708,7 @@ A4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="23" width="96.73">
+    <measure number="23" width="106.27">
       <note default-x="20.96" default-y="-25.00">
         <pitch>
           <step>A</step>
@@ -722,24 +726,25 @@ A4</text>
 A4♯</text>
           </lyric>
         </note>
-      <note default-x="57.95" default-y="-25.00">
+      <note default-x="62.72" default-y="-20.00">
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>4</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯לה
-A4♯</text>
+          <text>♭סי
+B4♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="24" width="88.77">
+    <measure number="24" width="82.93">
       <note default-x="13.00" default-y="-20.00">
         <pitch>
           <step>B</step>
@@ -762,7 +767,7 @@ B4</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="25" width="134.07">
+    <measure number="25" width="127.53">
       <print new-system="yes">
         <system-layout>
           <system-margins>
@@ -794,7 +799,7 @@ C5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="26" width="96.44">
+    <measure number="26" width="105.28">
       <note default-x="20.96" default-y="-15.00">
         <pitch>
           <step>C</step>
@@ -812,24 +817,25 @@ C5</text>
 C5♯</text>
           </lyric>
         </note>
-      <note default-x="57.80" default-y="-15.00">
+      <note default-x="62.22" default-y="-10.00">
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>5</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯דו
-C5♯</text>
+          <text>♭רה
+D5♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="27" width="88.48">
+    <measure number="27" width="81.94">
       <note default-x="13.00" default-y="-10.00">
         <pitch>
           <step>D</step>
@@ -852,7 +858,7 @@ D5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="28" width="96.44">
+    <measure number="28" width="105.28">
       <note default-x="20.96" default-y="-10.00">
         <pitch>
           <step>D</step>
@@ -870,24 +876,25 @@ D5</text>
 D5♯</text>
           </lyric>
         </note>
-      <note default-x="57.80" default-y="-10.00">
+      <note default-x="62.22" default-y="-5.00">
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>5</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯רה
-D5♯</text>
+          <text>♭מי
+E5♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="29" width="88.48">
+    <measure number="29" width="81.94">
       <note default-x="13.00" default-y="-5.00">
         <pitch>
           <step>E</step>
@@ -910,7 +917,7 @@ E5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="30" width="88.48">
+    <measure number="30" width="81.94">
       <note default-x="13.00" default-y="0.00">
         <pitch>
           <step>F</step>
@@ -933,7 +940,7 @@ F5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="31" width="96.44">
+    <measure number="31" width="105.28">
       <note default-x="20.96" default-y="0.00">
         <pitch>
           <step>F</step>
@@ -951,24 +958,25 @@ F5</text>
 F5♯</text>
           </lyric>
         </note>
-      <note default-x="57.80" default-y="0.00">
+      <note default-x="62.22" default-y="5.00">
         <pitch>
-          <step>F</step>
-          <alter>1</alter>
+          <step>G</step>
+          <alter>-1</alter>
           <octave>5</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯פה
-F5♯</text>
+          <text>♭סול
+G5♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="32" width="88.48">
+    <measure number="32" width="81.94">
       <note default-x="13.00" default-y="5.00">
         <pitch>
           <step>G</step>
@@ -991,7 +999,7 @@ G5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="33" width="96.44">
+    <measure number="33" width="109.48">
       <note default-x="20.96" default-y="5.00">
         <pitch>
           <step>G</step>
@@ -1009,24 +1017,25 @@ G5</text>
 G5♯</text>
           </lyric>
         </note>
-      <note default-x="57.80" default-y="5.00">
+      <note default-x="64.32" default-y="10.00">
         <pitch>
-          <step>G</step>
-          <alter>1</alter>
+          <step>A</step>
+          <alter>-1</alter>
           <octave>5</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯סול
-G5♯</text>
+          <text>♭לה
+A5♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="34" width="91.98">
+    <measure number="34" width="85.44">
       <note default-x="16.50" default-y="10.00">
         <pitch>
           <step>A</step>
@@ -1049,7 +1058,7 @@ A5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="35" width="108.34">
+    <measure number="35" width="114.54">
       <note default-x="24.46" default-y="10.00">
         <pitch>
           <step>A</step>
@@ -1067,24 +1076,25 @@ A5</text>
 A5♯</text>
           </lyric>
         </note>
-      <note default-x="65.50" default-y="10.00">
+      <note default-x="68.60" default-y="15.00">
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>5</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯לה
-A5♯</text>
+          <text>♭סי
+B5♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="36" width="91.98">
+    <measure number="36" width="85.44">
       <note default-x="16.50" default-y="15.00">
         <pitch>
           <step>B</step>
@@ -1107,7 +1117,7 @@ B5</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="37" width="121.71">
+    <measure number="37" width="117.49">
       <print new-system="yes">
         <system-layout>
           <system-margins>
@@ -1139,7 +1149,7 @@ C6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="38" width="92.47">
+    <measure number="38" width="101.00">
       <note default-x="24.46" default-y="20.00">
         <pitch>
           <step>C</step>
@@ -1157,24 +1167,25 @@ C6</text>
 C6♯</text>
           </lyric>
         </note>
-      <note default-x="57.57" default-y="20.00">
+      <note default-x="61.83" default-y="25.00">
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>6</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯דו
-C6♯</text>
+          <text>♭רה
+D6♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="39" width="76.11">
+    <measure number="39" width="71.90">
       <note default-x="16.50" default-y="25.00">
         <pitch>
           <step>D</step>
@@ -1197,7 +1208,7 @@ D6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="40" width="92.47">
+    <measure number="40" width="99.44">
       <note default-x="24.46" default-y="25.00">
         <pitch>
           <step>D</step>
@@ -1215,24 +1226,25 @@ D6</text>
 D6♯</text>
           </lyric>
         </note>
-      <note default-x="57.57" default-y="25.00">
+      <note default-x="61.05" default-y="30.00">
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>6</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯רה
-D6♯</text>
+          <text>♭מי
+E6♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="41" width="76.11">
+    <measure number="41" width="71.90">
       <note default-x="16.50" default-y="30.00">
         <pitch>
           <step>E</step>
@@ -1255,7 +1267,7 @@ E6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="42" width="76.11">
+    <measure number="42" width="71.90">
       <note default-x="16.50" default-y="35.00">
         <pitch>
           <step>F</step>
@@ -1278,7 +1290,7 @@ F6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="43" width="92.47">
+    <measure number="43" width="99.44">
       <note default-x="24.46" default-y="35.00">
         <pitch>
           <step>F</step>
@@ -1296,24 +1308,25 @@ F6</text>
 F6♯</text>
           </lyric>
         </note>
-      <note default-x="57.57" default-y="35.00">
+      <note default-x="61.05" default-y="40.00">
         <pitch>
-          <step>F</step>
-          <alter>1</alter>
+          <step>G</step>
+          <alter>-1</alter>
           <octave>6</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯פה
-F6♯</text>
+          <text>♭סול
+G6♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="44" width="76.11">
+    <measure number="44" width="71.90">
       <note default-x="16.50" default-y="40.00">
         <pitch>
           <step>G</step>
@@ -1336,7 +1349,7 @@ G6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="45" width="92.47">
+    <measure number="45" width="101.00">
       <note default-x="24.46" default-y="40.00">
         <pitch>
           <step>G</step>
@@ -1354,24 +1367,25 @@ G6</text>
 G6♯</text>
           </lyric>
         </note>
-      <note default-x="57.57" default-y="40.00">
+      <note default-x="61.83" default-y="45.00">
         <pitch>
-          <step>G</step>
-          <alter>1</alter>
+          <step>A</step>
+          <alter>-1</alter>
           <octave>6</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯סול
-G6♯</text>
+          <text>♭לה
+A6♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="46" width="76.11">
+    <measure number="46" width="71.90">
       <note default-x="16.50" default-y="45.00">
         <pitch>
           <step>A</step>
@@ -1394,7 +1408,7 @@ A6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="47" width="92.47">
+    <measure number="47" width="99.44">
       <note default-x="24.46" default-y="45.00">
         <pitch>
           <step>A</step>
@@ -1412,24 +1426,25 @@ A6</text>
 A6♯</text>
           </lyric>
         </note>
-      <note default-x="57.57" default-y="45.00">
+      <note default-x="61.05" default-y="50.00">
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>6</octave>
           </pitch>
         <duration>2</duration>
         <voice>1</voice>
         <type>half</type>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <lyric number="1" placement="below" color="#000000">
           <syllabic>single</syllabic>
-          <text>♯לה
-A6♯</text>
+          <text>♭סי
+B6♭</text>
           </lyric>
         </note>
       </measure>
-    <measure number="48" width="76.11">
+    <measure number="48" width="71.90">
       <note default-x="16.50" default-y="50.00">
         <pitch>
           <step>B</step>
@@ -1452,14 +1467,14 @@ B6</text>
         <type>half</type>
         </note>
       </measure>
-    <measure number="49" width="61.82">
+    <measure number="49" width="57.60">
       <note>
         <rest measure="yes"/>
         <duration>4</duration>
         <voice>1</voice>
         </note>
       </measure>
-    <measure number="50" width="63.47">
+    <measure number="50" width="59.25">
       <note>
         <rest measure="yes"/>
         <duration>4</duration>
