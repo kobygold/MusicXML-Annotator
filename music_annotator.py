@@ -22,6 +22,7 @@ BLOWBEND1 = '\u043C'
 BLOWBEND2 = '\u043D'
 
 OVERBLOW = '\u043B'
+OVERDRAW = '\u0440'
 
 DRAW = '\u043E'
 BLOW = '\u043F'
@@ -65,6 +66,7 @@ def replace_text(string, text):
     new = fr'\1 {text}\3'
     output = re.sub(pattern, new, string)
     output = output.replace('<text> ','<text>')
+    output = output.replace('<text>','<text font-family="KobyMusic">')
     return output
 
 
@@ -182,6 +184,8 @@ def note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=Fals
                     if '#' not in opt:
                         name = opt
                         break
+            if type(name) == list:
+                name = name[-1]
         if type(name) == list:
             name = '\n'.join(name)
     else:  # returnAllOptions == True
@@ -234,6 +238,8 @@ def note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=Fals
                     if '#' not in opt:
                         name = opt
                         break
+            if type(name) == list:
+                name = name[-1]
         if type(name) == list:
             name = '\n'.join(name)
     else:  # returnAllOptions == True
@@ -286,6 +292,8 @@ def note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=Fals
                     if '#' not in opt:
                         name = opt
                         break
+            if type(name) == list:
+                name = name[-1]
         if type(name) == list:
             name = '\n'.join(name)
     else:  # returnAllOptions == True
@@ -340,7 +348,7 @@ def note_to_text_DiatonicHarmonicaC(step, octave, alter, octaveShift=0):
         direction = 'blow'
 
     bends = name.count("'")
-    overblow = name.count("@")
+    overblowdraw = name.count("@")
 
     name = name.replace("'", "")
     name = name.replace("@", "")
@@ -350,30 +358,36 @@ def note_to_text_DiatonicHarmonicaC(step, octave, alter, octaveShift=0):
     draw_arrows = [DRAW, DRAWBEND1, DRAWBEND2, DRAWBEND3]
     blow_arrows = [BLOW, BLOWBEND1, BLOWBEND2]
 
-    if overblow > 0:
-        arrow = OVERBLOW
+    if overblowdraw > 0:
+        if direction == 'draw':
+            arrow = OVERDRAW
+        else:
+            arrow = OVERBLOW
     else:
         if direction == 'draw':
             arrow = draw_arrows[bends]
         else:
             arrow = blow_arrows[bends]
 
-    name = arrow + '\n ' + name
+    name = arrow + '\n' + name
 
     return name
 
 
-def note_to_text_Recorder(step, octave, alter, octaveShift=0):
+def note_to_text_Recorder(step, octave, alter, octaveShift=0, addHebrew=False):
     notes = ['לה', 'סי', 'דו', 'רה', 'מי', 'פה', 'סול']
     octaveShift -= 1  #  by default Recorder sheet is displayed at a lower octave, e.g. C5 on XML file is displayed as C4 on page
     step_index = ord(step) - ord('A')
-    name = notes[step_index]
-    if alter == '1':
-        name = '#' + name
-        #name = name + '#'
-    elif alter == '-1':
-        name = 'b' + name
-        #name = name + 'b'
+    if addHebrew:
+        name = notes[step_index]
+        if alter == '1':
+            name = '#' + name
+            #name = name + '#'
+        elif alter == '-1':
+            name = 'b' + name
+            #name = name + 'b'
+    else:
+        name = ''
 
     extra = {'': '', '1': '#', '-1': 'b'}
     note = step + octave + extra[alter]
@@ -394,7 +408,7 @@ def note_to_text_Recorder(step, octave, alter, octaveShift=0):
 
     holes_ids = dct.get(note, '?')
 
-    BG = '\u046E\n'
+    BG = '\u045D\n'
     TABLE = [['\u0456', '\u0457', '\u0458', 'x'],
              ['\u0453', '\u0454', '\u0455', 'x'],
              ['\u0453', '\u0454', '\u0455', 'x'],
@@ -419,24 +433,29 @@ def note_to_text_Recorder(step, octave, alter, octaveShift=0):
     name = name + '\n' + BG + output
     name = name.replace('b',FLAT)
     name = name.replace('#',SHARP)
+    if name.startswith('\n'):
+        name = name[1:]
 
     return name
 
 
-def note_to_text_trumpet(step, octave, alter):
+def note_to_text_trumpet(step, octave, alter, addHebrew=False):
     notes = ['לה', 'סי', 'דו', 'רה', 'מי', 'פה', 'סול']
     step_index = ord(step) - ord('A')
-    name = notes[step_index]
-    if alter == '1':
-        name = '#' + name
-        #name = name + '#'
-    elif alter == '-1':
-        name = 'b' + name
-        #name = name + 'b'
-    elif alter == '':
-        pass
+    if addHebrew:
+        name = notes[step_index]
+        if alter == '1':
+            name = '#' + name
+            #name = name + '#'
+        elif alter == '-1':
+            name = 'b' + name
+            #name = name + 'b'
+        elif alter == '':
+            pass
+        else:
+            warndlg('ERROR',f'note alteration of "{alter}" is not supported!')
     else:
-        warndlg('ERROR',f'note alteration of "{alter}" is not supported!')
+        name = ''
 
     extra = {'': '', '1': '#', '-1': 'b'}
     note = step + octave + extra[alter]
@@ -445,7 +464,9 @@ def note_to_text_trumpet(step, octave, alter):
            'C5': 0, 'C5#': 6, 'D5b': 6, 'D5': 4, 'D5#': 2, 'E5b': 2, 'E5': 0, 'F5': 4, 'F5#': 2, 'G5b': 2, 'G5': 0, 'G5#': 3, 'A5b': 3, 'A5': 6, 'A5#': 4, 'B5b': 4, 'B5': 2,
            'C6': 0, 'C6#': 6, 'D6b': 6, 'D6': 4, 'D6#': 2, 'E6b': 2, 'E6': 0, 'F6': 4, 'F6#': 2, 'G6b': 2, 'G6': 0,
            }
-    #signs = ['\n\u26AA', '\n\u26AB']
+    # signs3 = ['\n\u0470', '\n\u0473']  # on my font
+    # signs2 = ['\n\u046F', '\n\u0472']
+    # signs1 = ['\n\u046E', '\n\u0471']
     signs3 = ['\n\u2462', '\n\u2778']
     signs2 = ['\n\u2461', '\n\u2777']
     signs1 = ['\n\u2460', '\n\u2776']
@@ -461,19 +482,24 @@ def note_to_text_trumpet(step, octave, alter):
 
     name = name.replace('b',FLAT)
     name = name.replace('#',SHARP)
+    if name.startswith('\n'):
+        name = name[1:]
     return name
 
 
-def note_to_text_baritone(step, octave, alter):
+def note_to_text_baritone(step, octave, alter, addHebrew=False):
     notes = ['לה', 'סי', 'דו', 'רה', 'מי', 'פה', 'סול']
     step_index = ord(step) - ord('A')
-    name = notes[step_index]
-    if alter == '1':
-        name = '#' + name
-        #name = name + '#'
-    elif alter == '-1':
-        name = 'b' + name
-        #name = name + 'b'
+    if addHebrew:
+        name = notes[step_index]
+        if alter == '1':
+            name = '#' + name
+            #name = name + '#'
+        elif alter == '-1':
+            name = 'b' + name
+            #name = name + 'b'
+    else:
+        name = ''
 
     extra = {'': '', '1': '#', '-1': 'b'}
     note = step + octave + extra[alter]
@@ -482,7 +508,9 @@ def note_to_text_baritone(step, octave, alter):
            'C3': 5, 'C3#': 3, 'D3b': 3, 'D3': 6, 'D3#': 4, 'E3b': 4, 'E3': 2, 'F3': 0, 'F3#': 3, 'G3b': 3, 'G3': 6, 'G3#': 4, 'A3b': 4, 'A3': 2, 'A3#': 0, 'B3b': 0, 'B3': 6,
            'C4': 4, 'C4#': 2, 'D4b': 2, 'D4': 0, 'D4#': 4, 'E4b': 4, 'E4': 2, 'F4': 0, 'F4#': 3, 'G4b': 3, 'G4': 6, 'G4#': 4, 'A4b': 4, 'A4': 2, 'A4#': 0, 'B4b': 0,
            }
-    #signs = ['\n\u26AA', '\n\u26AB']
+    # signs3 = ['\n\u0470', '\n\u0473']  # on my font
+    # signs2 = ['\n\u046F', '\n\u0472']
+    # signs1 = ['\n\u046E', '\n\u0471']
     signs3 = ['\n\u2462', '\n\u2778']
     signs2 = ['\n\u2461', '\n\u2777']
     signs1 = ['\n\u2460', '\n\u2776']
@@ -498,6 +526,8 @@ def note_to_text_baritone(step, octave, alter):
 
     name = name.replace('b',FLAT)
     name = name.replace('#',SHARP)
+    if name.startswith('\n'):
+        name = name[1:]
 
     return name
 
@@ -551,16 +581,19 @@ def change_notes_according_to_preference(step, alter):
     return (step, alter)
 
 
-def note_to_text_tuba(step, octave, alter):
+def note_to_text_tuba(step, octave, alter, addHebrew=False):
     notes = ['לה', 'סי', 'דו', 'רה', 'מי', 'פה', 'סול']
     step_index = ord(step) - ord('A')
-    name = notes[step_index]
-    if alter == '1':
-        name = '#' + name
-        #name = name + '#'
-    elif alter == '-1':
-        name = 'b' + name
-        #name = name + 'b'
+    if addHebrew:
+        name = notes[step_index]
+        if alter == '1':
+            name = '#' + name
+            #name = name + '#'
+        elif alter == '-1':
+            name = 'b' + name
+            #name = name + 'b'
+    else:
+        name = ''
 
     extra = {'': '', '1': '#', '-1': 'b'}
     note = step + octave + extra[alter]
@@ -569,7 +602,9 @@ def note_to_text_tuba(step, octave, alter):
            'C2': 5, 'C2#': 3, 'D2b': 3, 'D2': 6, 'D2#': 4, 'E2b': 4, 'E2': 2, 'F2': 0, 'F2#': 3, 'G2b': 3, 'G2': 6, 'G2#': 4, 'A2b': 4, 'A2': 2, 'A2#': 0, 'B2b': 0, 'B2': 6,
            'C3': 4, 'C3#': 2, 'D3b': 2, 'D3': 0, 'D3#': 4, 'E3b': 4, 'E3': 2, 'F3': 0, 'F3#': 3, 'G3b': 3, 'G3': 6, 'G3#': 4, 'A3b': 4, 'A3': 2, 'A3#': 0, 'B3b': 0,
            }
-    #signs = ['\n\u26AA', '\n\u26AB']
+    # signs3 = ['\n\u0470', '\n\u0473']  # on my font
+    # signs2 = ['\n\u046F', '\n\u0472']
+    # signs1 = ['\n\u046E', '\n\u0471']
     signs3 = ['\n\u2462', '\n\u2778']
     signs2 = ['\n\u2461', '\n\u2777']
     signs1 = ['\n\u2460', '\n\u2776']
@@ -585,6 +620,8 @@ def note_to_text_tuba(step, octave, alter):
 
     name = name.replace('b',FLAT)
     name = name.replace('#',SHARP)
+    if name.startswith('\n'):
+        name = name[1:]
 
     return name
 
@@ -762,13 +799,13 @@ def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0):
             elif mode == 4:
                 new_text = note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
             elif mode == 5:
-                new_text = note_to_text_trumpet(step, octave, alter)
+                new_text = note_to_text_trumpet(step, octave, alter, addHebrew=False)
             elif mode == 6:
-                new_text = note_to_text_baritone(step, octave, alter)
+                new_text = note_to_text_baritone(step, octave, alter, addHebrew=False)
             elif mode == 7:
-                new_text = note_to_text_tuba(step, octave, alter)
+                new_text = note_to_text_tuba(step, octave, alter, addHebrew=False)
             elif mode == 8:
-                new_text = note_to_text_Recorder(step, octave, alter, 0)
+                new_text = note_to_text_Recorder(step, octave, alter, 0, addHebrew=False)
             elif mode == 9:
                 new_text = note_to_text_english(step, octave, alter)
             else:
@@ -1358,8 +1395,87 @@ class MainWindow(QMainWindow):
             self.summary4_text.setStyleSheet("color: rgb(255,0,0)")
 
 
+def build_note_characters():
+    steps = ['C', 'C', 'D', 'D', 'E', 'F', 'F', 'G', 'G', 'A', 'A', 'B']
+    alters = ['', '1', '',  '1',  '',  '', '1', '',  '1', '',  '1', '']
+    octaves = list('12345678')
+    alter_dct = {'': '', '1': '#'}
+    first_pitch = 60 - (4 - int(octaves[0]))*12
+    texts = list()
+    notes = list()
+    mode = 5
+    for octave in octaves:
+        for i in range(len(steps)):
+            step = steps[i]
+            alter = alters[i]
+            if mode == 0:
+                new_text = note_to_text_heb(step, octave, alter)
+            elif mode == 1:
+                new_text = note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False)
+            elif mode == 2:
+                new_text = note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=False)
+            elif mode == 3:
+                new_text = note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=False)
+            elif mode == 4:
+                new_text = note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
+            elif mode == 5:
+                new_text = note_to_text_trumpet(step, octave, alter, addHebrew=False)
+            elif mode == 6:
+                new_text = note_to_text_baritone(step, octave, alter, addHebrew=False)
+            elif mode == 7:
+                new_text = note_to_text_tuba(step, octave, alter, addHebrew=False)
+            elif mode == 8:
+                new_text = note_to_text_Recorder(step, octave, alter, 0, addHebrew=True)
+            elif mode == 9:
+                new_text = note_to_text_english(step, octave, alter)
+            else:
+                warndlg('ERROR', 'Text mode not supported!')
+            texts.append(new_text)
+            notes.append(f'{step}{octave}{alter_dct[alter]}')
+    non_valid_at_beginning = 0
+    non_valid_at_end = len(texts)
+    LENGTH = len(texts)
+    for text in texts:
+        if '?' in text:
+            non_valid_at_beginning += 1
+        else:
+            break
+    for text in texts[-1::-1]:
+        if '?' in text:
+            non_valid_at_end -= 1
+        else:
+            break
+    texts = texts[non_valid_at_beginning:non_valid_at_end]
+    notes = notes[non_valid_at_beginning:non_valid_at_end]
+    first_pitch += non_valid_at_beginning
+    print(f'non_valid_at_beginning = {non_valid_at_beginning} / {LENGTH}')
+    print(f'non_valid_at_end = {non_valid_at_end} / {LENGTH}')
+    print(f'first_pitch = {first_pitch}')
+    line1 = ' '
+    line2 = '['
+    line3 = '['
+    for i in range(len(notes)):
+        note = notes[i]
+        text = ascii(texts[i])[1:-1]
+        #text = text.replace('\n', '\\n')
+        diff = len(text) + 4 - len(note)
+        line1 += note + ' '*diff
+        line2 += '"' + text + '", '
+        line3 += '"' + note + '", ' + ' '*(diff-4)
+    line2 = line2[0:-2] + ']'
+    ind = line3.rfind(',')
+    line3 = line3[0:ind]
+    line3 += ']'
+    print(line1)
+    print(line2)
+    print(line3)
+
+
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    mainWin = MainWindow()
-    mainWin.show()
-    sys.exit(app.exec_())
+    if 1:  # build only
+        build_note_characters()
+    else:
+        app = QApplication(sys.argv)
+        mainWin = MainWindow()
+        mainWin.show()
+        sys.exit(app.exec_())
