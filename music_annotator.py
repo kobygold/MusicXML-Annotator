@@ -1411,11 +1411,11 @@ def build_note_characters():
             if mode == 0:
                 new_text = note_to_text_heb(step, octave, alter)
             elif mode == 1:
-                new_text = note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False)
+                new_text = note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=True)
             elif mode == 2:
-                new_text = note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=False)
+                new_text = note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=True)
             elif mode == 3:
-                new_text = note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=False)
+                new_text = note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=True)
             elif mode == 4:
                 new_text = note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
             elif mode == 5:
