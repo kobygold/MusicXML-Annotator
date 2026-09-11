@@ -79,14 +79,24 @@ bend, up to 6 for an overdraw), and the row shows the average over the notes tha
 The notes that are not on the harmonica at all are not part of it - they are not hard to play, they
 cannot be played - so read that row together with the "Impossible Notes Count" row right below it.
 
-The cells of that row are shaded from green (the easiest shift) to white (the hardest one), and the
-easiest one of all is framed, so that the whole row can be read as a heat strip. Only the shifts that
-can play every note of the piece take part in it - a shift that is "easy" only because most of the
-piece dropped out of it is never suggested, so the shifts that leave impossible notes behind keep a
-plain background and are never framed. When no shift can play the whole piece, nothing is shaded.
+The cells of that row are shaded, so that the whole row can be read as a heat strip instead of
+comparing 25 numbers:
 
-The weights live in the `DIATONIC_DIFFICULTY` dictionary at the top of `music_annotator.py`, tune them
-to your own playing.
+- the shifts that can play every note of the piece are shaded from a strong green (the easiest one)
+  to a pale green (the hardest one), and the easiest one of them all is framed
+- the shifts that leave notes that cannot be played at all are painted red. They take no part in the
+  shading and are never suggested, because a shift that is "easy" only thanks to the notes that
+  dropped out of it is not an easy shift. When no shift can play the whole piece the whole row is
+  red, and narrowing the "Instruments" or the "Measures" selection is usually what makes it playable
+
+The shade does not follow the value linearly: what separates two easy shifts is worth more than the
+same difference between two hard ones, which are out of reach anyway, so the value is put on a
+logarithmic scale. Two shifts scoring 0.06 and 0.90 out of a 0.06 to 4.58 range end up more than half
+the ramp apart, although both of them sit near the bottom of it.
+
+The weights live in the `DIATONIC_DIFFICULTY` dictionary at the top of `music_annotator.py`, and the
+colours and the steepness of that scale in the `DIFFICULTY_*` constants next to it - tune them to
+your own playing.
 
 ## Command line
 The GUI can also be opened directly on a file, with the "Calc" operation already done, by giving its
