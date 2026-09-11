@@ -41,6 +41,11 @@ and file name will append the annotation type to the input .xml file)
 Click the "Calc" button to check the annotation and see the text for each note on the screen.
 Click the "Run" button to create the MusicXML file at the selected output folder.
 
+For the Harmonica text modes, "Calc" shows a table of the counters (bends, overblows, impossible notes, ...)
+for every semitones shift between -12 and +12, one column per shift, so that the best key can be chosen at a
+glance. The column of the "Semitones Shift" value is highlighted, and that value is still the only one used
+when "Run" writes the output file.
+
 Note that the tool doesn't supports compressed MusicXML files.
 
 To render the output MusicXML as music sheet pages you can import the output MusicXML file into note sheet application (for example in *[MuseScore3](https://musescore.org/en)* you can do that by drag&drop).

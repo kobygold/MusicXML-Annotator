@@ -4,7 +4,8 @@ import re
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QAction, QComboBox, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QTextBrowser, QSpacerItem, QSizePolicy, QPushButton, QFileDialog, QMenu, QMessageBox,
-                             QToolButton, QSplitter, QCompleter, QDialog, QDialogButtonBox, QGridLayout, QCheckBox, QColorDialog)
+                             QToolButton, QSplitter, QCompleter, QDialog, QDialogButtonBox, QGridLayout, QCheckBox, QColorDialog,
+                             QTableWidget, QTableWidgetItem, QAbstractItemView)
 
 from PyQt5.QtGui import QIcon,QColor,QFont,QCursor,QPixmap,QClipboard
 from PyQt5.QtCore import QSize, Qt, QTimer, QEvent
@@ -32,6 +33,12 @@ PREFER_FLAT = False
 PREFER_SHARP = False
 
 SUMMARY_ROWS = 10  # amount of (title,value) rows reserved for the summary
+
+HARMONICA_MODES = (1, 2, 3, 4)  # the text modes that get the semitones shifts table
+SEMITONES_SHIFTS = list(range(-12, 13))  # the shifts calculated for that table
+SUMMARY_COLUMN_WIDTH = 42   # width of one semitones shift column of that table
+SUMMARY_HEADER_WIDTH = 160  # width of the counter names column of that table
+HIGHLIGHT_COLOR = (255, 243, 176)  # background of the column of the selected semitones shift
 
 APP_ICON_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.png')
 APP_ID = 'KobyGold.MusicXMLAnnotator'  # needed by Windows to show the app icon on the taskbar
@@ -1005,6 +1012,76 @@ def scan_music_file(in_xml_file):
     return instrument_staves, get_measures_range(single_line)
 
 
+def note_to_text(mode, step, octave, alter):
+    # the annotation text of a single note, for the selected text mode
+    if mode == 0:
+        return note_to_text_heb(step, octave, alter)
+    elif mode == 1:
+        return note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False)
+    elif mode == 2:
+        return note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=False)
+    elif mode == 3:
+        return note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=False)
+    elif mode == 4:
+        return note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
+    elif mode == 5:
+        return note_to_text_trumpet(step, octave, alter, addHebrew=False)
+    elif mode == 6:
+        return note_to_text_baritone(step, octave, alter, addHebrew=False)
+    elif mode == 7:
+        return note_to_text_tuba(step, octave, alter, addHebrew=False)
+    elif mode == 8:
+        return note_to_text_Recorder(step, octave, alter, 0, addHebrew=False)
+    elif mode == 9:
+        return note_to_text_english(step, octave, alter)
+
+    warndlg('ERROR', 'Text mode not supported!')
+    return '?'
+
+
+def annotation_text(mode, soa, semitonesShift):
+    # the annotation of one note, shifted and normalized the same way add_text_to_notes() does it
+    (step, octave, alter) = soa_shift(soa, semitonesShift)
+    (step, alter) = change_notes_according_to_preference(step, alter)
+    new_text = note_to_text(mode, step, octave, alter)
+    if '\n' in new_text:
+        new_text = '[' + new_text.replace('\n', ',') + ']'
+    return new_text
+
+
+def collect_pitched_notes(splt, selected_staves=None, measures=None):
+    # parse the (step,octave,alter) of every selected note once, so that the annotations can be
+    # recalculated for many semitones shifts without parsing the file again
+    notes = list()
+    for i, string, part_id, staff, measure in iterate_pitched_notes(splt):
+        if selected_staves is not None and instrument_staff_key(part_id, staff) not in selected_staves:
+            continue
+        if not measure_in_ranges(measure, measures):
+            continue
+        notes.append((get_label(string, 'step'), get_label(string, 'octave'), get_label(string, 'alter')))
+    return notes
+
+
+def count_all_shifts(in_xml_file, mode, shifts=None, selected_staves=None, measures=None):
+    # count the alterations of every semitones shift, returns {shift: counters}
+    global last_pressed
+    if shifts is None:
+        shifts = SEMITONES_SHIFTS
+
+    single_line = load_xml_text(in_xml_file)
+    if not single_line:
+        return dict()
+
+    notes = collect_pitched_notes(split_to_notes(single_line), selected_staves, measures)
+
+    counts_per_shift = dict()
+    for shift in shifts:
+        last_pressed = False  # the harmonica slide starts released on every pass
+        all_text = [annotation_text(mode, soa, shift) for soa in notes]
+        counts_per_shift[shift] = count_alterations(all_text)
+    return counts_per_shift
+
+
 def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, selected_staves=None, measures=None):
     # selected_staves is a collection of staff keys to annotate (None = annotate all the staves)
     # measures is a list of (first,last) measures to annotate (None = annotate all the measures)
@@ -1013,6 +1090,9 @@ def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, se
         return [],[]
 
     splt = split_to_notes(single_line)
+
+    global last_pressed
+    last_pressed = False  # the harmonica slide starts released, so that every run gives the same output
 
     prev_note = dict()  # last annotated note of each staff (staves are independent of each other)
 
@@ -1056,28 +1136,7 @@ def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, se
 
         (step, alter) = change_notes_according_to_preference(step, alter)
 
-        if mode == 0:
-            new_text = note_to_text_heb(step, octave, alter)
-        elif mode == 1:
-            new_text = note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False)
-        elif mode == 2:
-            new_text = note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=False)
-        elif mode == 3:
-            new_text = note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=False)
-        elif mode == 4:
-            new_text = note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
-        elif mode == 5:
-            new_text = note_to_text_trumpet(step, octave, alter, addHebrew=False)
-        elif mode == 6:
-            new_text = note_to_text_baritone(step, octave, alter, addHebrew=False)
-        elif mode == 7:
-            new_text = note_to_text_tuba(step, octave, alter, addHebrew=False)
-        elif mode == 8:
-            new_text = note_to_text_Recorder(step, octave, alter, 0, addHebrew=False)
-        elif mode == 9:
-            new_text = note_to_text_english(step, octave, alter)
-        else:
-            warndlg('ERROR', 'Text mode not supported!')
+        new_text = note_to_text(mode, step, octave, alter)
         if '\n' in new_text:
             text = '[' + new_text.replace('\n',',') + ']'
             all_text.append(text)
@@ -1137,6 +1196,22 @@ class DndLineEdit(QLineEdit):
             filepath = str(urls[0].path())[1:]
             # any file type here - call external dropFcn() registered earlier
             self.dropFcn(filepath)
+
+
+class ClickableLineEdit(QLineEdit):
+    def __init__(self, parent):
+        super(ClickableLineEdit, self).__init__(parent)
+        self.parent = parent
+        self.clickFcn = None
+
+    # register a callback function when the text box is clicked
+    def setClickFcn(self,clickFcnName):
+        self.clickFcn = clickFcnName
+
+    def mousePressEvent(self, event):
+        if self.clickFcn:
+            self.clickFcn()
+        QLineEdit.mousePressEvent(self, event)
 
 
 class InstrumentStavesDialog(QDialog):
@@ -1201,6 +1276,9 @@ class MainWindow(QMainWindow):
         self.semitones_shift = 0
         self.instrument_staves = list()  # all the instrument staves found in the input file
         self.selected_staves = None      # keys of the staves to annotate (None = all the staves)
+        self.summary_table = None            # built by initUI(), may be resized before that
+        self.summary_counts = None           # counters of the last Calc (None = no Calc yet)
+        self.summary_counts_per_shift = None  # counters of the last Calc, per semitones shift
         self.file_measures = None        # the (first,last) measures range of the input file
         self.measures = None             # the measures to annotate (None = all the measures)
         self.measures_text = ''          # last valid content of the measures text box
@@ -1214,12 +1292,19 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.5.2'
+        self.version = 'v0.5.3'
 
-        defaultGeometry = (600, 200, 900, 200)
-        self.left, self.top, self.width, self.height = defaultGeometry
+        # wide enough to show the whole semitones shifts table without scrolling it,
+        # but never wider than the screen
+        windowWidth = SUMMARY_HEADER_WIDTH + len(SEMITONES_SHIFTS)*SUMMARY_COLUMN_WIDTH + 40
+        windowHeight = 200
+        screen = QApplication.primaryScreen().availableGeometry()
+        windowWidth = min(windowWidth, screen.width() - 40)
+        windowLeft = min(600, max(screen.left(), screen.right() - windowWidth - 20))
+        windowTop = 200
+
         self.setWindowTitle(f'{self.title} - {self.version}')
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setGeometry(windowLeft, windowTop, windowWidth, windowHeight)
 
         defaultDpi = 100
         btnHeight = 25
@@ -1290,8 +1375,9 @@ class MainWindow(QMainWindow):
         self.instruments_title = QLabel('Instruments:')
         self.instruments_title.setFont(font1)
         self.instruments_title.setFixedWidth(titleWidth)
-        self.instruments_edit = QLineEdit()
+        self.instruments_edit = ClickableLineEdit(self)
         self.instruments_edit.setReadOnly(True)
+        self.instruments_edit.setClickFcn(self.instruments_clicked)
         self.instruments_edit.setFont(font)
         self.instruments_edit.setMinimumWidth(bigBtnWidth)
 
@@ -1358,6 +1444,16 @@ class MainWindow(QMainWindow):
         self.calc_btn.setFont(font1)
         self.calc_btn.clicked.connect(self.calc)
 
+        self.summary_table = QTableWidget(self)
+        self.summary_table.setFont(font1)
+        self.summary_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.summary_table.setSelectionMode(QAbstractItemView.NoSelection)
+        self.summary_table.horizontalHeader().setDefaultSectionSize(SUMMARY_COLUMN_WIDTH)
+        self.summary_table.verticalHeader().setDefaultSectionSize(txtHeight + 3)
+        self.summary_table.verticalHeader().setFixedWidth(SUMMARY_HEADER_WIDTH)
+        self.summary_table.setMinimumWidth(300)
+        self.summary_table.setVisible(False)
+
         self.consoleViewer = QTextBrowser(self)
         self.consoleViewer.setReadOnly(True)
         self.consoleViewer.setMinimumWidth(300)
@@ -1419,6 +1515,9 @@ class MainWindow(QMainWindow):
             grid.addWidget(self.summary_texts[i],  index, 1)
             index += 1
 
+        grid.addWidget(self.summary_table, index, 0, 1, 4)
+
+        index += 1
         grid.addWidget(self.consoleViewer, index, 0, 1, 4)
 
         index += 1
@@ -1434,41 +1533,42 @@ class MainWindow(QMainWindow):
         if sender == self.text_mode_combo:
             self.text_mode_type = sender.currentText()
             self.auto_update_output_file()
-            self.update_summary()
+            self.clear_summary()
 
     def summary_rows(self, counts):
         # the (title, value, colored) summary rows of the selected text mode.
         # a "colored" row is shown in green when it is 0, and in red otherwise
         mode = self.text_mode_combo.currentIndex()
-        rows = [('- Total Amount of Notes:', counts['total'], False)]
+        rows = [('Total Amount of Notes', counts['total'], False)]
 
         if mode in (1, 2, 3):  # chromatic harmonicas
-            rows.append(('- Button Count:', counts['button'], False))
+            rows.append(('Button Count', counts['button'], False))
 
         if mode == 4:  # diatonic harmonica, one row per way of altering a note
-            rows.append(('- 0.5 Draw Bend Count:', counts['drawbend05'], False))
-            rows.append(('- 1.0 Draw Bend Count:', counts['drawbend10'], False))
-            rows.append(('- 1.5 Draw Bend Count:', counts['drawbend15'], False))
-            rows.append(('- 0.5 Blow Bend Count:', counts['blowbend05'], False))
-            rows.append(('- 1.0 Blow Bend Count:', counts['blowbend10'], False))
-            rows.append(('- OverBlow Count:', counts['overblow'], False))
-            rows.append(('- OverDraw Count:', counts['overdraw'], False))
+            rows.append(('0.5 Draw Bend Count', counts['drawbend05'], False))
+            rows.append(('1.0 Draw Bend Count', counts['drawbend10'], False))
+            rows.append(('1.5 Draw Bend Count', counts['drawbend15'], False))
+            rows.append(('0.5 Blow Bend Count', counts['blowbend05'], False))
+            rows.append(('1.0 Blow Bend Count', counts['blowbend10'], False))
+            rows.append(('OverBlow Count', counts['overblow'], False))
+            rows.append(('OverDraw Count', counts['overdraw'], False))
 
         if mode in (1, 2, 3, 4, 5, 6, 7, 8):  # modes that cannot play every note
-            rows.append(('- Impossible Notes Count:', counts['impossible'], True))
+            rows.append(('Impossible Notes Count', counts['impossible'], True))
 
         return rows
 
-    def update_summary(self, counts=None):
-        # fill the summary of the selected text mode (empty values until the next Calc)
-        if counts is None:
-            counts = empty_alterations()
+    def update_summary(self):
+        # the harmonica modes get a table of every semitones shift, the other modes a list of rows
+        as_table = self.text_mode_combo.currentIndex() in HARMONICA_MODES
+        counts = self.summary_counts if self.summary_counts else empty_alterations()
         rows = self.summary_rows(counts)
+
         for i in range(SUMMARY_ROWS):
-            visible = i < len(rows)
+            visible = (not as_table) and (i < len(rows))
             if visible:
-                (title, value, colored) = rows[i]
-                self.summary_titles[i].setText(title)
+                (name, value, colored) = rows[i]
+                self.summary_titles[i].setText(f'- {name}:')
                 self.summary_texts[i].setText(str(value))
                 if colored and value != '':
                     if value == 0:
@@ -1483,6 +1583,88 @@ class MainWindow(QMainWindow):
             self.summary_titles[i].setVisible(visible)
             self.summary_texts[i].setVisible(visible)
 
+        self.summary_table.setVisible(as_table)
+        if as_table:
+            self.update_summary_table()
+
+    def update_summary_table(self):
+        # one row per counter, one column per semitones shift, and the column of the semitones
+        # shift selected by the user is highlighted, because this is the one that "Run" writes
+        table = self.summary_table
+        counts_per_shift = self.summary_counts_per_shift
+        rows_per_shift = dict()
+        for shift in SEMITONES_SHIFTS:
+            counts = counts_per_shift.get(shift) if counts_per_shift else None
+            rows_per_shift[shift] = self.summary_rows(counts if counts else empty_alterations())
+        names = [name for (name, value, colored) in rows_per_shift[SEMITONES_SHIFTS[0]]]
+
+        table.clear()
+        table.setRowCount(len(names))
+        table.setColumnCount(len(SEMITONES_SHIFTS))
+        table.setVerticalHeaderLabels(names)
+        table.setHorizontalHeaderLabels([f'{shift:+d}' if shift else '0' for shift in SEMITONES_SHIFTS])
+
+        highlight = QColor(*HIGHLIGHT_COLOR)
+        selected_column = None
+        for column in range(len(SEMITONES_SHIFTS)):
+            shift = SEMITONES_SHIFTS[column]
+            selected = (shift == self.semitones_shift)
+            if selected:
+                selected_column = column
+                header = table.horizontalHeaderItem(column)
+                header.setBackground(highlight)
+                font = header.font()
+                font.setBold(True)
+                header.setFont(font)
+
+            for row in range(len(names)):
+                (name, value, colored) = rows_per_shift[shift][row]
+                item = QTableWidgetItem(str(value))
+                item.setTextAlignment(Qt.AlignCenter)
+                if colored and value != '':
+                    item.setForeground(QColor(0, 155, 0) if value == 0 else QColor(255, 0, 0))
+                if selected:
+                    item.setBackground(highlight)
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+                table.setItem(row, column, item)
+
+        self.resize_summary_table()
+
+        # once the table got its real size, fix its height again (the scrollbar is only known by
+        # then) and bring the highlighted column into view. only the column index may be kept,
+        # the items themselves are dropped by the next table.clear()
+        QTimer.singleShot(0, lambda: self.show_summary_table_column(selected_column))
+
+    def resize_summary_table(self):
+        # keep the table exactly as high as its rows, plus its scrollbar when it has one
+        table = self.summary_table
+        if table is None:
+            return
+        height = table.horizontalHeader().height() + 2*table.frameWidth()
+        for row in range(table.rowCount()):
+            height += table.rowHeight(row)
+        if table.horizontalScrollBar().isVisible():
+            height += table.horizontalScrollBar().height()
+        if table.height() != height:
+            table.setFixedHeight(height)
+
+    def show_summary_table_column(self, column):
+        # center the table on the given column, if it is still there
+        self.resize_summary_table()
+        if column is None:
+            return
+        item = self.summary_table.item(0, column)
+        if item is not None:
+            self.summary_table.scrollToItem(item, QAbstractItemView.PositionAtCenter)
+
+    def resizeEvent(self, event):
+        QMainWindow.resizeEvent(self, event)
+        # the scrollbar of the table appears and disappears with the width of the window,
+        # and whether it is there is only known once the layout settled
+        QTimer.singleShot(0, self.resize_summary_table)
+
     def input_file_changed(self,extText=''):
         text = self.input_file_edit.text()
         if text == self.input_file:
@@ -1490,6 +1672,12 @@ class MainWindow(QMainWindow):
         self.input_file = text
         self.auto_update_output_file()
         self.refresh_file_info()
+
+    def clear_summary(self):
+        # forget the counters of the previous Calc, they belong to another mode or another file
+        self.summary_counts = None
+        self.summary_counts_per_shift = None
+        self.update_summary()
 
     def refresh_file_info(self):
         # rescan the input file, and reset the selection to all its staves and all its measures
@@ -1500,6 +1688,7 @@ class MainWindow(QMainWindow):
             self.instrument_staves, self.file_measures = scan_music_file(self.input_file)
         self.update_instrument_staves_text()
         self.reset_measures()
+        self.clear_summary()
 
     def reset_measures(self):
         # show the whole measures range of the input file, and annotate all of it
@@ -1530,6 +1719,7 @@ class MainWindow(QMainWindow):
         if total == 0:
             self.instruments_edit.setText('')
             self.instruments_edit.setToolTip('')
+            self.instruments_edit.setCursor(QCursor(Qt.ArrowCursor))
             return
         labels = self.selected_staves_labels()
         if total == 1:  # a single staff file has nothing to choose from
@@ -1539,7 +1729,13 @@ class MainWindow(QMainWindow):
         else:
             text = f'{len(labels)} of {total} selected: ' + ', '.join(labels)
         self.instruments_edit.setText(text)
-        self.instruments_edit.setToolTip(text)
+        self.instruments_edit.setToolTip(text + '\n(click to choose the staves to annotate)')
+        self.instruments_edit.setCursor(QCursor(Qt.PointingHandCursor))
+
+    def instruments_clicked(self):
+        # clicking the instruments text box is the same as pressing the "Select" button next to it
+        if self.instrument_staves:
+            self.select_instrument_staves()
 
     def select_instrument_staves(self):
         if not self.instrument_staves:
@@ -1562,18 +1758,19 @@ class MainWindow(QMainWindow):
         #self.update_gui_due_to_input_file_change('')
 
     def semitones_shift_changed(self):
-        sender = self.sender()
-        text = sender.text()
+        # validate the semitones text box, and restore its last valid value if it holds no number
+        text = self.semitones_shift_edit.text().strip()
         try:
             self.semitones_shift = int(text)
-            self.auto_update_output_file()
-        except Exception as e:
-            err = str(e)
-            warndlg('ERROR in Semitones value', f'ERROR: unsupported semitones value (empty string is not supported)')
+        except ValueError:
+            warndlg('ERROR in Semitones value',
+                    f'ERROR: unsupported semitones value: "{text}"'
+                    f'\nuse a whole number of semitones, for example: -3')
+            self.semitones_shift_edit.setText(str(self.semitones_shift))  # restore the last valid value
             return
 
-        #print(f'semitones_shift = {text}')
-        #self.update_gui_due_to_input_file_change('')
+        self.auto_update_output_file()
+        self.update_summary()  # move the highlight to the column of the new semitones shift
 
 
     def handleDropFileInput(self,filepath):
@@ -1676,7 +1873,13 @@ class MainWindow(QMainWindow):
         self.consoleViewer.append(','.join(all_notes))
         self.consoleViewer.append('\nTexts:')
         self.consoleViewer.append(','.join(all_text))
-        self.update_summary(count_alterations(all_text))
+        self.summary_counts = count_alterations(all_text)
+        if index in HARMONICA_MODES:  # calculate every semitones shift, not only the selected one
+            self.summary_counts_per_shift = count_all_shifts(self.input_file, index, SEMITONES_SHIFTS,
+                                                             self.selected_staves, self.measures)
+        else:
+            self.summary_counts_per_shift = None
+        self.update_summary()
 
 
 def build_note_characters():
