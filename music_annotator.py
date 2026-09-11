@@ -39,7 +39,9 @@ SUMMARY_ROWS = 12  # amount of (title,value) rows reserved for the summary
 # the text modes, in the order of the combo box (the first one is the default one).
 # TEXT_MODE_NAMES is both the name extension of the output file and the name used on the command line
 TEXT_MODE_TITLES = ['Hebrew Names', 'Chromatic Harmonica 10', 'Chromatic Harmonica 12',
-                    'Chromatic Harmonica 16', 'Diatonic Harmonica', 'Trumpet+Hebrew',
+                    'Chromatic Harmonica 16',
+                    'Diatonic Harmonica (select the key on the right -->)',
+                    'Trumpet+Hebrew',
                     'Baritone+Hebrew', 'Tuba+Hebrew', 'Recorder+Hebrew', 'English+Hebrew']
 TEXT_MODE_NAMES = ['Hebrew', 'Chromatic10', 'Chromatic12', 'Chromatic16', 'DiatonicC',
                    'Trumpet', 'Baritone', 'Tuba', 'Recorder', 'English']
@@ -1434,7 +1436,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.6.6'
+        self.version = 'v0.6.7'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
