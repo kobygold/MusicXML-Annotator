@@ -46,6 +46,12 @@ for every semitones shift between -12 and +12, one column per shift, so that the
 glance. The column of the "Semitones Shift" value is highlighted, and that value is still the only one used
 when "Run" writes the output file.
 
+For the Diatonic Harmonica the table also holds an "Average Difficulty" row: every note is given a difficulty
+according to the way it is played (0 for a plain blow or draw note, 1 for a half step draw bend, up to 6 for an
+overdraw, and 10 for a note that is not on the harmonica at all), and the row shows the average over the notes.
+The lowest value of the row is marked in green - this is the shift that is the easiest to play. The weights
+live in the DIATONIC_DIFFICULTY dictionary at the top of music_annotator.py, tune them to your own playing.
+
 Note that the tool doesn't supports compressed MusicXML files.
 
 To render the output MusicXML as music sheet pages you can import the output MusicXML file into note sheet application (for example in *[MuseScore3](https://musescore.org/en)* you can do that by drag&drop).

@@ -851,6 +851,42 @@ def empty_alterations():
     return dict.fromkeys(COUNT_KEYS, '')
 
 
+# how hard each way of playing a note is on a diatonic harmonica, from 0 (a plain blow or draw
+# note, nothing to do) to 10 (the note is simply not on the harmonica). the draw bends come first
+# because they are the ones every player learns, the blow bends live in the high register and need
+# another embouchure, and the overbends need a well gapped harmonica on top of the technique.
+# tune these values to your own playing if you disagree with them
+DIATONIC_DIFFICULTY = {'drawbend05': 1,   # half step draw bend, the first bend one learns
+                       'drawbend10': 2,   # whole step draw bend
+                       'drawbend15': 3,   # 1.5 step draw bend, hole 3 only, hard to keep in tune
+                       'blowbend05': 3,   # half step blow bend, high register
+                       'blowbend10': 4,   # whole step blow bend, hole 10
+                       'overblow': 5,     # overblow, needs a gapped harmonica
+                       'overdraw': 6,     # overdraw, the hardest one to control
+                       'impossible': 10}  # not playable at all on this harmonica
+
+
+def diatonic_difficulty(counts):
+    # average difficulty of a note, over all the counted notes.
+    # the plain blow and draw notes are worth 0, so only the altered ones are summed here
+    if not counts['total']:
+        return ''  # no Calc yet, or no note at all
+
+    score = 0
+    for (key, weight) in DIATONIC_DIFFICULTY.items():
+        score += counts[key] * weight
+    return score / counts['total']
+
+
+def summary_value_text(value):
+    # the counters are whole numbers, the average difficulty is not
+    if value == '':
+        return ''
+    if isinstance(value, float):
+        return f'{value:.2f}'
+    return str(value)
+
+
 def fix_notes_split(input_list):
     output = list()
     for i in range(len(input_list)):
@@ -1292,7 +1328,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.5.3'
+        self.version = 'v0.5.4'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
@@ -1536,25 +1572,29 @@ class MainWindow(QMainWindow):
             self.clear_summary()
 
     def summary_rows(self, counts):
-        # the (title, value, colored) summary rows of the selected text mode.
-        # a "colored" row is shown in green when it is 0, and in red otherwise
+        # the (title, value, colored, best) summary rows of the selected text mode.
+        # a "colored" row is shown in green when it is 0, and in red otherwise.
+        # a "best" row also marks its lowest value over all the semitones shifts of the table
         mode = self.text_mode_combo.currentIndex()
-        rows = [('Total Amount of Notes', counts['total'], False)]
+        rows = [('Total Amount of Notes', counts['total'], False, False)]
+
+        if mode == 4:  # diatonic harmonica, the easiest shift to play is the lowest one here
+            rows.append(('Average Difficulty', diatonic_difficulty(counts), False, True))
 
         if mode in (1, 2, 3):  # chromatic harmonicas
-            rows.append(('Button Count', counts['button'], False))
+            rows.append(('Button Count', counts['button'], False, False))
 
         if mode == 4:  # diatonic harmonica, one row per way of altering a note
-            rows.append(('0.5 Draw Bend Count', counts['drawbend05'], False))
-            rows.append(('1.0 Draw Bend Count', counts['drawbend10'], False))
-            rows.append(('1.5 Draw Bend Count', counts['drawbend15'], False))
-            rows.append(('0.5 Blow Bend Count', counts['blowbend05'], False))
-            rows.append(('1.0 Blow Bend Count', counts['blowbend10'], False))
-            rows.append(('OverBlow Count', counts['overblow'], False))
-            rows.append(('OverDraw Count', counts['overdraw'], False))
+            rows.append(('0.5 Draw Bend Count', counts['drawbend05'], False, False))
+            rows.append(('1.0 Draw Bend Count', counts['drawbend10'], False, False))
+            rows.append(('1.5 Draw Bend Count', counts['drawbend15'], False, False))
+            rows.append(('0.5 Blow Bend Count', counts['blowbend05'], False, False))
+            rows.append(('1.0 Blow Bend Count', counts['blowbend10'], False, False))
+            rows.append(('OverBlow Count', counts['overblow'], False, False))
+            rows.append(('OverDraw Count', counts['overdraw'], False, False))
 
         if mode in (1, 2, 3, 4, 5, 6, 7, 8):  # modes that cannot play every note
-            rows.append(('Impossible Notes Count', counts['impossible'], True))
+            rows.append(('Impossible Notes Count', counts['impossible'], True, False))
 
         return rows
 
@@ -1567,9 +1607,9 @@ class MainWindow(QMainWindow):
         for i in range(SUMMARY_ROWS):
             visible = (not as_table) and (i < len(rows))
             if visible:
-                (name, value, colored) = rows[i]
+                (name, value, colored, best) = rows[i]
                 self.summary_titles[i].setText(f'- {name}:')
-                self.summary_texts[i].setText(str(value))
+                self.summary_texts[i].setText(summary_value_text(value))
                 if colored and value != '':
                     if value == 0:
                         self.summary_texts[i].setStyleSheet("color: rgb(0,155,0)")
@@ -1596,12 +1636,28 @@ class MainWindow(QMainWindow):
         for shift in SEMITONES_SHIFTS:
             counts = counts_per_shift.get(shift) if counts_per_shift else None
             rows_per_shift[shift] = self.summary_rows(counts if counts else empty_alterations())
-        names = [name for (name, value, colored) in rows_per_shift[SEMITONES_SHIFTS[0]]]
+        first_rows = rows_per_shift[SEMITONES_SHIFTS[0]]
+        names = [name for (name, value, colored, best) in first_rows]
+
+        # the lowest value of every "best" row, to mark the shift that is the easiest to play
+        best_values = dict()
+        for row in range(len(first_rows)):
+            if first_rows[row][3]:
+                values = [rows_per_shift[shift][row][1] for shift in SEMITONES_SHIFTS]
+                values = [value for value in values if value != '']
+                if values:
+                    best_values[row] = min(values)
 
         table.clear()
         table.setRowCount(len(names))
         table.setColumnCount(len(SEMITONES_SHIFTS))
         table.setVerticalHeaderLabels(names)
+        for row in range(len(names)):
+            if names[row] == 'Average Difficulty':
+                weights = ', '.join(f'{key}={weight}' for (key, weight) in DIATONIC_DIFFICULTY.items())
+                table.verticalHeaderItem(row).setToolTip(
+                    'Average difficulty of a note: a plain blow or draw note is worth 0, and\n'
+                    f'{weights}.\nThe lowest value is the easiest shift to play, and it is marked in green.')
         table.setHorizontalHeaderLabels([f'{shift:+d}' if shift else '0' for shift in SEMITONES_SHIFTS])
 
         highlight = QColor(*HIGHLIGHT_COLOR)
@@ -1618,11 +1674,16 @@ class MainWindow(QMainWindow):
                 header.setFont(font)
 
             for row in range(len(names)):
-                (name, value, colored) = rows_per_shift[shift][row]
-                item = QTableWidgetItem(str(value))
+                (name, value, colored, best) = rows_per_shift[shift][row]
+                item = QTableWidgetItem(summary_value_text(value))
                 item.setTextAlignment(Qt.AlignCenter)
                 if colored and value != '':
                     item.setForeground(QColor(0, 155, 0) if value == 0 else QColor(255, 0, 0))
+                if best and row in best_values and value == best_values[row]:
+                    item.setForeground(QColor(0, 155, 0))  # the easiest shift to play
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
                 if selected:
                     item.setBackground(highlight)
                     font = item.font()
