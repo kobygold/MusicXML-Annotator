@@ -31,6 +31,8 @@ DEFAULT_PLACEMENT = 'below'  # 'below' or 'above'
 PREFER_FLAT = False
 PREFER_SHARP = False
 
+SUMMARY_ROWS = 10  # amount of (title,value) rows reserved for the summary
+
 APP_ICON_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.png')
 APP_ID = 'KobyGold.MusicXMLAnnotator'  # needed by Windows to show the app icon on the taskbar
 
@@ -813,21 +815,33 @@ def soa_shift(soa, semitonesOffset):
     return soa
 
 
-def count_alterations(all_notes):
-    button_count = 0
-    bend_count = 0
-    overbend_count = 0
-    impossibles_count = 0
-    for note in all_notes:
-        if (DRAWBEND1 in note) or (DRAWBEND2 in note) or (DRAWBEND3 in note) or (BLOWBEND1 in note) or (BLOWBEND2 in note):
-            bend_count += 1
-        if OVERBLOW in note:
-            overbend_count += 1
-        if "#" in note:
-            button_count += 1
-        if "?" in note:
-            impossibles_count += 1
-    return (button_count, bend_count, overbend_count, impossibles_count)
+# every Diatonic Harmonica annotation starts with one arrow character, which tells exactly how the
+# note is played, so the alterations can be counted one by one
+DIATONIC_ARROWS = {'drawbend05': DRAWBEND1, 'drawbend10': DRAWBEND2, 'drawbend15': DRAWBEND3,
+                   'blowbend05': BLOWBEND1, 'blowbend10': BLOWBEND2,
+                   'overblow': OVERBLOW, 'overdraw': OVERDRAW}
+
+COUNT_KEYS = ['total', 'button', 'impossible'] + list(DIATONIC_ARROWS.keys())
+
+
+def count_alterations(all_text):
+    # count the alterations of the annotated notes, per alteration type
+    counts = dict.fromkeys(COUNT_KEYS, 0)
+    counts['total'] = len(all_text)
+    for text in all_text:
+        if '#' in text:
+            counts['button'] += 1
+        if '?' in text:
+            counts['impossible'] += 1
+        for (key, arrow) in DIATONIC_ARROWS.items():
+            if arrow in text:
+                counts[key] += 1
+    return counts
+
+
+def empty_alterations():
+    # the same counters, with no value yet (before the first Calc)
+    return dict.fromkeys(COUNT_KEYS, '')
 
 
 def fix_notes_split(input_list):
@@ -1092,7 +1106,7 @@ def main_process():
     mode = 1  # heb, chromatic10, chromatic12, diatonicC
     all_notes,all_text = add_text_to_notes(my_xml_file, outfile, mode, 0)
     print(','.join(all_text))
-    print(f'Alterations counts: (button, bend, overbend, impossible) = {count_alterations(all_notes)}')
+    print(f'Alterations counts = {count_alterations(all_text)}')
 
 
 class DndLineEdit(QLineEdit):
@@ -1200,7 +1214,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.5.1'
+        self.version = 'v0.5.2'
 
         defaultGeometry = (600, 200, 900, 200)
         self.left, self.top, self.width, self.height = defaultGeometry
@@ -1217,9 +1231,6 @@ class MainWindow(QMainWindow):
 
         font1 = QFont()
         font1.setPointSize(defaultDpi // 10)
-        font1red = QFont()
-        font1red.setPointSize(defaultDpi // 10)
-        #font1red.
         font2 = QFont()
         font2.setPointSize(defaultDpi // 10)
         font2.setUnderline(True)
@@ -1319,33 +1330,17 @@ class MainWindow(QMainWindow):
         self.summary0_title = QLabel('Summary:')
         self.summary0_title.setFont(font2)
 
-        self.summary1_title = QLabel('')
-        self.summary1_title.setFont(font1)
-        #self.summary1_title.setFixedHeight(txtHeight)
-        self.summary1_text = QLabel('')
-        self.summary1_text.setFont(font1)
-        #self.summary1_text.setFixedHeight(txtHeight)
-
-        self.summary2_title = QLabel('')
-        self.summary2_title.setFont(font1)
-        #self.summary2_title.setFixedHeight(txtHeight)
-        self.summary2_text = QLabel('')
-        self.summary2_text.setFont(font1red)
-        #self.summary2_text.setFixedHeight(txtHeight)
-
-        self.summary3_title = QLabel('')
-        self.summary3_title.setFont(font1)
-        #self.summary3_title.setFixedHeight(txtHeight)
-        self.summary3_text = QLabel('')
-        self.summary3_text.setFont(font1)
-        #self.summary3_text.setFixedHeight(txtHeight)
-
-        self.summary4_title = QLabel('')
-        self.summary4_title.setFont(font1)
-        #self.summary4_title.setFixedHeight(txtHeight)
-        self.summary4_text = QLabel('')
-        self.summary4_text.setFont(font1)
-        #self.summary4_text.setFixedHeight(txtHeight)
+        # the summary holds one (title,value) row per counter of the selected text mode,
+        # the unused rows stay hidden and take no space
+        self.summary_titles = list()
+        self.summary_texts = list()
+        for i in range(SUMMARY_ROWS):
+            title = QLabel('')
+            title.setFont(font1)
+            value = QLabel('')
+            value.setFont(font1)
+            self.summary_titles.append(title)
+            self.summary_texts.append(value)
 
         #self.run_btn = QPushButton(QIcon('download-icon.png'),'Browse')
         self.run_btn = QPushButton('Run')
@@ -1419,29 +1414,18 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.summary0_title,     index, 0)
 
         index += 1
-        grid.addWidget(self.summary1_title,     index, 0)
-        grid.addWidget(self.summary1_text,      index, 1)
+        for i in range(SUMMARY_ROWS):
+            grid.addWidget(self.summary_titles[i], index, 0)
+            grid.addWidget(self.summary_texts[i],  index, 1)
+            index += 1
 
-        index += 1
-        grid.addWidget(self.summary2_title,     index, 0)
-        grid.addWidget(self.summary2_text,      index, 1)
-
-        index += 1
-        grid.addWidget(self.summary3_title,     index, 0)
-        grid.addWidget(self.summary3_text,      index, 1)
-
-        index += 1
-        grid.addWidget(self.summary4_title,     index, 0)
-        grid.addWidget(self.summary4_text,      index, 1)
-
-        index += 1
         grid.addWidget(self.consoleViewer, index, 0, 1, 4)
 
         index += 1
         grid.addWidget(self.run_btn,  index,    3, 1, 1)
         grid.addWidget(self.calc_btn,  index,   2, 1, 1)
 
-        self.update_summary_titles()
+        self.update_summary()
         self.update_instrument_staves_text()
         self.show()
 
@@ -1450,110 +1434,54 @@ class MainWindow(QMainWindow):
         if sender == self.text_mode_combo:
             self.text_mode_type = sender.currentText()
             self.auto_update_output_file()
-            self.update_summary_titles()
+            self.update_summary()
 
-    def update_summary_titles(self):
-        self.summary1_title.setVisible(False)
-        self.summary1_text.setVisible(False)
-        self.summary2_title.setVisible(False)
-        self.summary2_text.setVisible(False)
-        self.summary3_title.setVisible(False)
-        self.summary3_text.setVisible(False)
-        self.summary4_title.setVisible(False)
-        self.summary4_text.setVisible(False)
-        if self.text_mode_combo.currentIndex() == 0:  # hebrew text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 1:  # chromatic10
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary2_title.setText('- Button Count:')
-            self.summary2_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary2_title.setVisible(True)
-            self.summary2_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 2:  # chromatic12
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary2_title.setText('- Button Count:')
-            self.summary2_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary2_title.setVisible(True)
-            self.summary2_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 3:  # chromatic16
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary2_title.setText('- Button Count:')
-            self.summary2_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary2_title.setVisible(True)
-            self.summary2_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 4:  # diatonic-C
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary2_title.setText('- Bend Notes Count:')
-            self.summary2_text.setText('')
-            self.summary3_title.setText('- OverBlow Notes Count:')
-            self.summary3_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary2_title.setVisible(True)
-            self.summary2_text.setVisible(True)
-            self.summary3_title.setVisible(True)
-            self.summary3_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 5:  # trumpet text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 6 or self.text_mode_combo.currentIndex() == 7:  # baritone/tuba text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 8:  # Recorder text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
-            self.summary4_title.setVisible(True)
-            self.summary4_text.setVisible(True)
-        elif self.text_mode_combo.currentIndex() == 9:  # English text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText('')
-            self.summary1_title.setVisible(True)
-            self.summary1_text.setVisible(True)
+    def summary_rows(self, counts):
+        # the (title, value, colored) summary rows of the selected text mode.
+        # a "colored" row is shown in green when it is 0, and in red otherwise
+        mode = self.text_mode_combo.currentIndex()
+        rows = [('- Total Amount of Notes:', counts['total'], False)]
+
+        if mode in (1, 2, 3):  # chromatic harmonicas
+            rows.append(('- Button Count:', counts['button'], False))
+
+        if mode == 4:  # diatonic harmonica, one row per way of altering a note
+            rows.append(('- 0.5 Draw Bend Count:', counts['drawbend05'], False))
+            rows.append(('- 1.0 Draw Bend Count:', counts['drawbend10'], False))
+            rows.append(('- 1.5 Draw Bend Count:', counts['drawbend15'], False))
+            rows.append(('- 0.5 Blow Bend Count:', counts['blowbend05'], False))
+            rows.append(('- 1.0 Blow Bend Count:', counts['blowbend10'], False))
+            rows.append(('- OverBlow Count:', counts['overblow'], False))
+            rows.append(('- OverDraw Count:', counts['overdraw'], False))
+
+        if mode in (1, 2, 3, 4, 5, 6, 7, 8):  # modes that cannot play every note
+            rows.append(('- Impossible Notes Count:', counts['impossible'], True))
+
+        return rows
+
+    def update_summary(self, counts=None):
+        # fill the summary of the selected text mode (empty values until the next Calc)
+        if counts is None:
+            counts = empty_alterations()
+        rows = self.summary_rows(counts)
+        for i in range(SUMMARY_ROWS):
+            visible = i < len(rows)
+            if visible:
+                (title, value, colored) = rows[i]
+                self.summary_titles[i].setText(title)
+                self.summary_texts[i].setText(str(value))
+                if colored and value != '':
+                    if value == 0:
+                        self.summary_texts[i].setStyleSheet("color: rgb(0,155,0)")
+                    else:
+                        self.summary_texts[i].setStyleSheet("color: rgb(255,0,0)")
+                else:
+                    self.summary_texts[i].setStyleSheet("")
+            else:  # an unused row keeps no stale value
+                self.summary_titles[i].setText('')
+                self.summary_texts[i].setText('')
+            self.summary_titles[i].setVisible(visible)
+            self.summary_texts[i].setVisible(visible)
 
     def input_file_changed(self,extText=''):
         text = self.input_file_edit.text()
@@ -1748,71 +1676,7 @@ class MainWindow(QMainWindow):
         self.consoleViewer.append(','.join(all_notes))
         self.consoleViewer.append('\nTexts:')
         self.consoleViewer.append(','.join(all_text))
-        counts = count_alterations(all_text)
-        (button_count, bend_count, overbend_count, impossibles_count) = counts
-        button_count = str(button_count)
-        bend_count = str(bend_count)
-        overbend_count = str(overbend_count)
-        impossibles_count = str(impossibles_count)
-        total_count = str(len(all_text))
-        #print(','.join(all_text))
-        #print(f'Alterations counts: (button, bend, overbend, impossible) = {counts}')
-        if self.text_mode_combo.currentIndex() == 0:  # hebrew text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-        elif self.text_mode_combo.currentIndex() == 1:  # chromatic10
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary2_title.setText('- Button Count:')
-            self.summary2_text.setText(button_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 2:  # chromatic12
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary2_title.setText('- Button Count:')
-            self.summary2_text.setText(button_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 3:  # chromatic16
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary2_title.setText('- Button Count:')
-            self.summary2_text.setText(button_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 4:  # diatonic-C
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary2_title.setText('- Bend Notes Count:')
-            self.summary2_text.setText(bend_count)
-            self.summary3_title.setText('- OverBlow Notes Count:')
-            self.summary3_text.setText(overbend_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 5:  # trumpet text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 6 or self.text_mode_combo.currentIndex() == 7:  # baritone/tuba text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 8:  # Recorder text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-            self.summary4_title.setText('- Impossible Notes Count:')
-            self.summary4_text.setText(impossibles_count)
-        elif self.text_mode_combo.currentIndex() == 9:  # english text
-            self.summary1_title.setText('- Total Amount of Notes:')
-            self.summary1_text.setText(total_count)
-
-        if impossibles_count == '0':
-            self.summary4_text.setStyleSheet("color: rgb(0,155,0)")
-        else:
-            self.summary4_text.setStyleSheet("color: rgb(255,0,0)")
+        self.update_summary(count_alterations(all_text))
 
 
 def build_note_characters():
