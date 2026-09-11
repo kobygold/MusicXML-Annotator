@@ -73,6 +73,13 @@ table of all those counters for every semitones shift between -12 and +12, one c
 that the best key can be chosen at a glance. The column of the "Semitones Shift" value is highlighted,
 and that value is still the only one used when "Run" writes the output file.
 
+For the Diatonic Harmonica the first row of the table, right under the semitones shifts, names the
+harmonica each shift stands for: shifting the notes by N semitones and reading them on a C harmonica
+gives the very same holes and bends as playing the original notes on a harmonica pitched N semitones
+below C, so shifting by +2 is the same as picking up a Bb harmonica. The standard keys run from G to
+F#, and outside of that band the row names the "Low" and the "High" models the way players write
+them - LF# for a Low F#, HG for a High G - with the full name on hover.
+
 For the Diatonic Harmonica the table also holds an **Average Difficulty** row: every note is given a
 difficulty according to the way it is played (0 for a plain blow or draw note, 1 for a half step draw
 bend, up to 6 for an overdraw), and the row shows the average over the notes that can be played.

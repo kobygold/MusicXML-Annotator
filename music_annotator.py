@@ -34,7 +34,7 @@ DEFAULT_PLACEMENT = 'below'  # 'below' or 'above'
 PREFER_FLAT = False
 PREFER_SHARP = False
 
-SUMMARY_ROWS = 10  # amount of (title,value) rows reserved for the summary
+SUMMARY_ROWS = 12  # amount of (title,value) rows reserved for the summary
 
 # the text modes, in the order of the combo box (the first one is the default one).
 # TEXT_MODE_NAMES is both the name extension of the output file and the name used on the command line
@@ -43,6 +43,27 @@ TEXT_MODE_TITLES = ['Hebrew Names', 'Chromatic Harmonica 10', 'Chromatic Harmoni
                     'Baritone+Hebrew', 'Tuba+Hebrew', 'Recorder+Hebrew', 'English+Hebrew']
 TEXT_MODE_NAMES = ['Hebrew', 'Chromatic10', 'Chromatic12', 'Chromatic16', 'DiatonicC',
                    'Trumpet', 'Baritone', 'Tuba', 'Recorder', 'English']
+
+# a semitones shift is also the harmonica the piece could be played on as written: shifting the
+# notes N semitones up and reading them on a C harmonica gives the very same holes and bends as
+# playing the original notes on a harmonica pitched N semitones BELOW C. the keys below are
+# therefore C going down. the standard keys run from G up to F#, one octave apart, so a shift that
+# falls outside of that band asks for a "Low" or a "High" model
+HARMONICA_KEYS = ['C', 'B', 'Bb', 'A', 'Ab', 'G', 'F#', 'F', 'E', 'Eb', 'D', 'Db']
+HARMONICA_LOWEST_SHIFT = -6  # shifts from here (F#) up to +5 (G) are the standard harmonica keys
+HARMONICA_HIGHEST_SHIFT = 5
+
+
+def harmonica_key_of_shift(semitonesShift, short=False):
+    # the diatonic harmonica that plays the piece as written, for the given semitones shift.
+    # the short form is the one harmonica players write: LF# for a Low F#, HG for a High G
+    key = HARMONICA_KEYS[semitonesShift % len(HARMONICA_KEYS)]
+    if semitonesShift > HARMONICA_HIGHEST_SHIFT:
+        return ('L' + key) if short else ('Low ' + key)
+    if semitonesShift < HARMONICA_LOWEST_SHIFT:
+        return ('H' + key) if short else ('High ' + key)
+    return key
+
 
 HARMONICA_MODES = (1, 2, 3, 4)  # the text modes that get the semitones shifts table
 SEMITONES_SHIFTS = list(range(-12, 13))  # the shifts calculated for that table
@@ -1387,7 +1408,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.6.3'
+        self.version = 'v0.6.4'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
@@ -1630,12 +1651,18 @@ class MainWindow(QMainWindow):
             self.auto_update_output_file()
             self.clear_summary()
 
-    def summary_rows(self, counts):
+    def summary_rows(self, counts, shift=None):
         # the (title, value, colored, best) summary rows of the selected text mode.
         # a "colored" row is shown in green when it is 0, and in red otherwise.
-        # a "best" row also marks its lowest value over all the semitones shifts of the table
+        # a "best" row also marks its lowest value over all the semitones shifts of the table.
+        # shift is the semitones shift of the column, for the rows that depend on it
         mode = self.text_mode_combo.currentIndex()
-        rows = [('Total Amount of Notes', counts['total'], False, False)]
+        rows = list()
+
+        if mode == 4 and shift is not None:  # the harmonica this shift stands for
+            rows.append(('Harmonica', harmonica_key_of_shift(shift, short=True), False, False))
+
+        rows.append(('Total Amount of Notes', counts['total'], False, False))
 
         if mode == 4:  # diatonic harmonica, the easiest shift to play is the lowest one here
             rows.append(('Average Difficulty', diatonic_difficulty(counts), False, True))
@@ -1694,7 +1721,7 @@ class MainWindow(QMainWindow):
         rows_per_shift = dict()
         for shift in SEMITONES_SHIFTS:
             counts = counts_per_shift.get(shift) if counts_per_shift else None
-            rows_per_shift[shift] = self.summary_rows(counts if counts else empty_alterations())
+            rows_per_shift[shift] = self.summary_rows(counts if counts else empty_alterations(), shift)
         first_rows = rows_per_shift[SEMITONES_SHIFTS[0]]
         names = [name for (name, value, colored, best) in first_rows]
 
@@ -1723,6 +1750,12 @@ class MainWindow(QMainWindow):
         table.setColumnCount(len(SEMITONES_SHIFTS))
         table.setVerticalHeaderLabels(names)
         for row in range(len(names)):
+            if names[row] == 'Harmonica':
+                table.verticalHeaderItem(row).setToolTip(
+                    'The diatonic harmonica that plays the piece as written: reading the holes of\n'
+                    'this column on a C harmonica is the same as playing the original notes on\n'
+                    'that one. The standard keys run from G to F#, the other ones are the "Low"\n'
+                    'and the "High" models.')
             if names[row] == 'Average Difficulty':
                 weights = ', '.join(f'{key}={weight}' for (key, weight) in DIATONIC_DIFFICULTY.items())
                 table.verticalHeaderItem(row).setToolTip(
@@ -1753,6 +1786,8 @@ class MainWindow(QMainWindow):
                 (name, value, colored, best) = rows_per_shift[shift][row]
                 item = QTableWidgetItem(summary_value_text(value))
                 item.setTextAlignment(Qt.AlignCenter)
+                if name == 'Harmonica':  # the cell is too narrow for "Low F#", spell it on hover
+                    item.setToolTip(harmonica_key_of_shift(shift))
 
                 if colored and value != '':
                     item.setForeground(QColor(0, 155, 0) if value == 0 else QColor(255, 0, 0))
