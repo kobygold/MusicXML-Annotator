@@ -1,6 +1,7 @@
 import sys
 import codecs
 import re
+import argparse
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QAction, QComboBox, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QTextBrowser, QSpacerItem, QSizePolicy, QPushButton, QFileDialog, QMenu, QMessageBox,
@@ -33,6 +34,14 @@ PREFER_FLAT = False
 PREFER_SHARP = False
 
 SUMMARY_ROWS = 10  # amount of (title,value) rows reserved for the summary
+
+# the text modes, in the order of the combo box (the first one is the default one).
+# TEXT_MODE_NAMES is both the name extension of the output file and the name used on the command line
+TEXT_MODE_TITLES = ['Hebrew Names', 'Chromatic Harmonica 10', 'Chromatic Harmonica 12',
+                    'Chromatic Harmonica 16', 'Diatonic Harmonica (C)', 'Trumpet+Hebrew',
+                    'Baritone+Hebrew', 'Tuba+Hebrew', 'Recorder+Hebrew', 'English+Hebrew']
+TEXT_MODE_NAMES = ['Hebrew', 'Chromatic10', 'Chromatic12', 'Chromatic16', 'DiatonicC',
+                   'Trumpet', 'Baritone', 'Tuba', 'Recorder', 'English']
 
 HARMONICA_MODES = (1, 2, 3, 4)  # the text modes that get the semitones shifts table
 SEMITONES_SHIFTS = list(range(-12, 13))  # the shifts calculated for that table
@@ -1333,7 +1342,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.5.5'
+        self.version = 'v0.6.0'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
@@ -1443,9 +1452,8 @@ class MainWindow(QMainWindow):
         self.text_mode_title.setFont(font1)
         self.text_mode_title.setFixedWidth(titleWidth)
         self.text_mode_combo = QComboBox(self)
-        items = ['Hebrew Names','Chromatic Harmonica 10','Chromatic Harmonica 12','Chromatic Harmonica 16','Diatonic Harmonica (C)', 'Trumpet+Hebrew', 'Baritone+Hebrew', 'Tuba+Hebrew', 'Recorder+Hebrew', 'English+Hebrew']  # first one is the default one
-        self.out_postfix = ['Hebrew','Chromatic10','Chromatic12','Chromatic16','DiatonicC','Trumpet','Baritone','Tuba','Recorder','English']  # name extension for outfile
-        self.text_mode_combo.addItems(items)
+        self.out_postfix = TEXT_MODE_NAMES  # name extension for outfile
+        self.text_mode_combo.addItems(TEXT_MODE_TITLES)
         self.text_mode_combo.activated.connect(self.combo_activated)
         self.text_mode_combo.setFont(font1)
         selected_mode = 0
@@ -1644,11 +1652,21 @@ class MainWindow(QMainWindow):
         first_rows = rows_per_shift[SEMITONES_SHIFTS[0]]
         names = [name for (name, value, colored, best) in first_rows]
 
-        # the lowest value of every "best" row, to mark the shift that is the easiest to play
+        # the lowest value of every "best" row, to mark the shift that is the easiest to play.
+        # only the shifts that hold no impossible note at all are candidates: an easy average
+        # over the few notes that survived is not an easy piece to play. when no shift can play
+        # the whole piece, nothing is marked
+        playable_shifts = list()
+        if counts_per_shift:
+            for shift in SEMITONES_SHIFTS:
+                counts = counts_per_shift.get(shift)
+                if counts and counts['total'] and counts['impossible'] == 0:
+                    playable_shifts.append(shift)
+
         best_values = dict()
         for row in range(len(first_rows)):
             if first_rows[row][3]:
-                values = [rows_per_shift[shift][row][1] for shift in SEMITONES_SHIFTS]
+                values = [rows_per_shift[shift][row][1] for shift in playable_shifts]
                 values = [value for value in values if value != '']
                 if values:
                     best_values[row] = min(values)
@@ -1664,7 +1682,8 @@ class MainWindow(QMainWindow):
                     'Average difficulty of a note that can be played: a plain blow or draw note\n'
                     f'is worth 0, and {weights}.\n'
                     'The impossible notes are not part of it, see their own row for them.\n'
-                    'The lowest value is the easiest shift to play, and it is marked in green.')
+                    'The green mark is the easiest shift to play among the shifts that can play\n'
+                    'every note of the piece. Nothing is marked when there is no such shift.')
         table.setHorizontalHeaderLabels([f'{shift:+d}' if shift else '0' for shift in SEMITONES_SHIFTS])
 
         highlight = QColor(*HIGHLIGHT_COLOR)
@@ -1686,7 +1705,7 @@ class MainWindow(QMainWindow):
                 item.setTextAlignment(Qt.AlignCenter)
                 if colored and value != '':
                     item.setForeground(QColor(0, 155, 0) if value == 0 else QColor(255, 0, 0))
-                if best and row in best_values and value == best_values[row]:
+                if best and row in best_values and shift in playable_shifts and value == best_values[row]:
                     item.setForeground(QColor(0, 155, 0))  # the easiest shift to play
                     font = item.font()
                     font.setBold(True)
@@ -1799,6 +1818,62 @@ class MainWindow(QMainWindow):
         self.instruments_edit.setText(text)
         self.instruments_edit.setToolTip(text + '\n(click to choose the staves to annotate)')
         self.instruments_edit.setCursor(QCursor(Qt.PointingHandCursor))
+
+    def apply_arguments(self, args):
+        # fill the GUI from the command line arguments, and calculate.
+        # returns False when an argument could not be used, the GUI stays open either way
+        if not args.input_file:
+            return True
+
+        input_file = os.path.abspath(args.input_file)
+        if not os.path.isfile(input_file):
+            argument_error(f'cannot find the input file: "{args.input_file}"')
+            return False
+
+        self.input_file_edit.setText(input_file)
+        self.input_file_changed()  # loads the file, and resets the staves and the measures
+
+        if args.text_mode:
+            index = text_mode_index(args.text_mode)
+            if index is None:
+                argument_error(f'unsupported text mode: "{args.text_mode}", '
+                               f'use one of: {", ".join(TEXT_MODE_NAMES)}')
+                return False
+            self.text_mode_combo.setCurrentIndex(index)
+            self.auto_update_output_file()
+            self.clear_summary()
+
+        if args.semitones is not None:
+            self.semitones_shift_edit.setText(str(args.semitones))
+            self.semitones_shift_changed()
+
+        if args.instruments:
+            if not self.instrument_staves:
+                argument_error(f'the input file holds no staff to select')
+                return False
+            keys = parse_staves_indexes(args.instruments, self.instrument_staves)
+            if keys is None:
+                available = ', '.join(f'{index+1}={self.instrument_staves[index]["label"]}'
+                                      for index in range(len(self.instrument_staves)))
+                argument_error(f'unsupported instruments: "{args.instruments}", '
+                               f'use the indexes of: {available}')
+                return False
+            if len(keys) == len(self.instrument_staves):
+                self.selected_staves = None  # all the staves are selected
+            else:
+                self.selected_staves = keys
+            self.update_instrument_staves_text()
+
+        if args.measures:
+            if parse_measures_range(args.measures) is None:
+                argument_error(f'unsupported measures range: "{args.measures}", '
+                               f'use for example: 5-11 or 3 or 1-4,9,12-16')
+                return False
+            self.measures_edit.setText(args.measures)
+            self.measures_changed()
+
+        self.calc()
+        return True
 
     def instruments_clicked(self):
         # clicking the instruments text box is the same as pressing the "Select" button next to it
@@ -2040,6 +2115,71 @@ def build_note_characters():
     print('      property variant notenames  : ' + line3)
 
 
+def text_mode_index(text):
+    # a text mode given on the command line, either by its name or by its index
+    text = text.strip()
+    if re.match(r'^\d+$', text):
+        index = int(text)
+        if 0 <= index < len(TEXT_MODE_NAMES):
+            return index
+        return None
+
+    for index in range(len(TEXT_MODE_NAMES)):
+        if TEXT_MODE_NAMES[index].lower() == text.lower():
+            return index
+    return None
+
+
+def parse_staves_indexes(text, instrument_staves):
+    # the staves given on the command line as 1 based indexes, for example '1,2'.
+    # returns their keys, or None if the text is not a valid list of indexes of this file
+    keys = list()
+    for section in text.split(','):
+        section = section.strip()
+        if not section:
+            continue
+        if not re.match(r'^\d+$', section):
+            return None
+        index = int(section)
+        if index < 1 or index > len(instrument_staves):
+            return None
+        key = instrument_staves[index-1]['key']
+        if key not in keys:
+            keys.append(key)
+
+    if not keys:
+        return None
+    return keys
+
+
+def parse_arguments(argv):
+    # all the arguments are optional, without any of them the GUI just opens empty
+    modes = ', '.join(f'{index}={TEXT_MODE_NAMES[index]}' for index in range(len(TEXT_MODE_NAMES)))
+    parser = argparse.ArgumentParser(
+        description='MusicXML Auto Annotator. Given an input file, the GUI opens on it and the '
+                    '"Calc" operation runs, so that the summary is ready. "Run" still has to be '
+                    'pressed to write the output file.')
+    parser.add_argument('input_file', nargs='?', default='',
+                        help='the MusicXML file to load (.xml or .musicxml)')
+    parser.add_argument('-t', '--text-mode', default='',
+                        help=f'the annotation to calculate, by name or by index: {modes}')
+    parser.add_argument('-s', '--semitones', type=int, default=None,
+                        help='semitones shift, a whole number, for example: -3')
+    parser.add_argument('-i', '--instruments', default='',
+                        help='1 based indexes of the staves to annotate, for example: 1,2 '
+                             '(default: all of them)')
+    parser.add_argument('-m', '--measures', default='',
+                        help='measures to annotate, for example: 5-11 or 3 or 1-4,9,12-16 '
+                             '(default: all of them)')
+    return parser.parse_args(argv)
+
+
+def argument_error(message):
+    # the app is a GUI, but it may well have been started from a console
+    print(f'ERROR: {message}', file=sys.stderr)
+    warndlg('ERROR in command line argument', f'ERROR: {message}')
+
+
 def set_windows_app_id(app_id=APP_ID):
     # without an explicit "app user model id" Windows groups the app under the generic python
     # icon on the taskbar, instead of using the icon of the window
@@ -2054,9 +2194,11 @@ if __name__ == '__main__':
     if 0:  # build only
         build_note_characters()
     else:
+        arguments = parse_arguments(sys.argv[1:])
         set_windows_app_id()
-        app = QApplication(sys.argv)
+        app = QApplication(sys.argv[:1])  # the arguments above are ours, not Qt ones
         app.setWindowIcon(QIcon(APP_ICON_FILE))  # used by every window and dialog of the app
         mainWin = MainWindow()
         mainWin.show()
+        mainWin.apply_arguments(arguments)
         sys.exit(app.exec_())
