@@ -26,6 +26,15 @@ The tool supports the following annotations:
 - Hebrew Note Names
 - English+Hebrew Note Names
 
+If the file holds more than a single staff (for example: the right hand and the left hand of a piano part,
+or several instruments), press the "Select" button next to "Instruments" to choose which staves will be annotated.
+Every staff of every instrument is listed with its name and its amount of notes, and any combination of them can
+be checked. By default all the staves are annotated, and the selection is reset whenever a new input file is loaded.
+
+The "Measures" text box limits the annotation to a part of the piece. When a file is loaded it is filled with the
+whole range of the file (for example: 1-58), and it accepts a range like "3-8", a single measure like "5", or a
+list like "1-4,9,12-16". Notes outside of the selected measures are left untouched.
+
 Choose an output folder and file name (by default the output folder will be the same as the input folder,
 and file name will append the annotation type to the input .xml file) 
 

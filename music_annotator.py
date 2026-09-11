@@ -31,6 +31,9 @@ DEFAULT_PLACEMENT = 'below'  # 'below' or 'above'
 PREFER_FLAT = False
 PREFER_SHARP = False
 
+APP_ICON_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.png')
+APP_ID = 'KobyGold.MusicXMLAnnotator'  # needed by Windows to show the app icon on the taskbar
+
 
 last_pressed = False
 
@@ -38,7 +41,6 @@ last_pressed = False
 def warndlg(title,mssg):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Warning)
-    msg.setWindowIcon(QIcon("warning_orange.png"))
 
     msg.setText(mssg)
     #msg.setInformativeText("This is additional information")
@@ -258,6 +260,46 @@ def note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=Fals
 
     return name
 
+#dct = create_chromatic_harmonica_notes_dictionary(harmonica_key, harmonica_holes)
+def note_to_text_ChromaticHarmonica(dct, step, octave, alter, returnAllOptions=False):
+    global last_pressed
+    extra = {'': '', '1': '#', '-1': 'b'}
+    note = step + octave + extra[alter]
+
+    name = dct.get(note, '?')
+
+    if returnAllOptions == False:
+        if type(name) == list:
+            if last_pressed:  # prefer pressed '#'
+                for opt in name:
+                    if '#' in opt:
+                        name = opt
+                        break
+            else:  # prefer not pressed '#'
+                for opt in name:
+                    if '#' not in opt:
+                        name = opt
+                        break
+            if type(name) == list:
+                name = name[-1]
+        if type(name) == list:
+            name = '\n'.join(name)
+    else:  # returnAllOptions == True
+        if type(name) == list:
+            name = '\n'.join(name)
+
+    if '#' in name:
+        last_pressed = True
+    else:
+        last_pressed = False
+
+    # if name.startswith('('):
+    #     name += '\n\u2193'
+    # else:
+    #     name += '\n\u2191'
+
+    return name
+
 
 def note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False):
     global last_pressed
@@ -313,6 +355,67 @@ def note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=Fals
     return name
 
 
+def get_note_name(index, octave):
+    all_notes_s = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']  # with sharp (#-diez)
+    all_notes_b = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']  # with flat (b-bemol)
+    note = all_notes_s[index % len(all_notes_s)]
+    octave += index // len(all_notes_s)
+    if note.endswith('#'):
+        out = f'{note[0]}{octave}#'
+    else:
+        out = f'{note[0]}{octave}'
+    return out
+
+
+def invert_dict(dictionary):
+    inverted_dict = {}
+    for key, value in dictionary.items():
+        if value not in inverted_dict:
+            inverted_dict[value] = key
+        else:
+            existing_value = inverted_dict[value]
+            if isinstance(existing_value, list):
+                existing_value.append(key)
+            else:
+                inverted_dict[value] = [existing_value, key]
+    return inverted_dict
+
+
+def create_chromatic_harmonica_notes_dictionary(hormonica_key, amount_oh_holes=12):
+    # key should include both key and octave,
+    # e.g: C4 (standard key of C)
+    #      G3 (standard key of G, i.e. one lower octave)
+    #      B3b (standard key of Bb)
+    # support for 16 holes is not perfect, because its numbering is different: L1,L2,L3,L4,1,2,3,4,5,6,...,12
+    key = hormonica_key[0] + hormonica_key[2:]
+    base_octave = int(hormonica_key[1])
+    all_notes_s = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']  # with sharp (#-diez)
+    all_notes_b = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']  # with flat (b-bemol)
+    if key.endswith('b'):
+        key_index = all_notes_b.index(key)
+    else:
+        key_index = all_notes_s.index(key)
+    dct = dict()
+    semi_tone_offset = [0, 2, 4, 5, 7, 9, 11, 12]
+    note_format_std = ['{}', '({})', '{}', '({})', '{}', '({})', '({})', '{}']
+    note_format_sharp = ['#{}', '(#{})', '#{}', '(#{})', '#{}', '(#{})', '(#{})', '#{}']
+    for i in range(0, amount_oh_holes//4):
+        for j in range(8):
+            hole_int = 1 + (j//2) + 4*i
+            st_offset = key_index + semi_tone_offset[j]
+            # clear notes (not sharp/flat)
+            hole_str = note_format_std[j].format(hole_int)
+            note_name = get_note_name(st_offset, base_octave + i)
+            dct[hole_str] = note_name
+            # sharp notes - button press, add 1 semi-tone
+            hole_str = note_format_sharp[j].format(hole_int)
+            note_name = get_note_name(st_offset + 1, base_octave + i)
+            dct[hole_str] = note_name
+    inv_dct = invert_dict(dct)
+    #print(inv_dct)
+    return inv_dct
+
+
 def note_to_text_DiatonicHarmonicaC(step, octave, alter, octaveShift=0):
     global last_pressed
     extra = {'': '', '1': '#', '-1': 'b'}
@@ -337,6 +440,8 @@ def note_to_text_DiatonicHarmonicaC(step, octave, alter, octaveShift=0):
            }
 
     name = dct.get(note, '?')
+    if name == "?":
+        return name
 
     if type(name) == list:
         #name = name[0]
@@ -736,93 +841,242 @@ def fix_notes_split(input_list):
     return output
 
 
-def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0):
+def load_xml_text(in_xml_file):
+    # read a whole MusicXML file into a single string (returns '' on failure)
     try:
         with codecs.open(in_xml_file, "r", "utf-8") as fi:
             lines = fi.readlines()
     except Exception as e:
         err = str(e)
         warndlg('ERROR in opening file', f'ERROR: Error in MusicXML file!\nInput file may not be supported or wrong format selected')
-        return [],[]
+        return ''
 
-    single_line = ''.join(lines)
+    return ''.join(lines)
+
+
+def split_to_notes(single_line):
     splt = single_line.split('note')
     splt = fix_notes_split(splt)
+    return splt
 
-    prev_note = None
 
-    N = len(splt)
+def get_part_names(single_line):
+    # map the id of every <score-part> of the <part-list> to its <part-name>
+    names = dict()
+    for match in re.finditer(r'<score-part\s+id="([^"]*)"(.*?)</score-part>', single_line, re.DOTALL):
+        part_id = match.group(1)
+        names[part_id] = get_label(match.group(2), 'part-name')
+    return names
+
+
+def instrument_staff_key(part_id, staff):
+    # unique id of one staff of one instrument, used to select the staves to annotate
+    return f'{part_id}/{staff}'
+
+
+def parse_measures_range(text):
+    # parse a measures range text like '3-8' or '1-4,9,12-16' into a list of (first,last) tuples,
+    # returns None if the text is not a valid measures range
+    ranges = list()
+    for section in text.split(','):
+        section = section.strip()
+        if not section:
+            continue
+        match = re.match(r'^(\d+)\s*-\s*(\d+)$', section)
+        if match:
+            first = int(match.group(1))
+            last = int(match.group(2))
+        elif re.match(r'^\d+$', section):
+            first = int(section)
+            last = first
+        else:
+            return None
+        if last < first:
+            (first, last) = (last, first)
+        ranges.append((first, last))
+
+    if not ranges:
+        return None
+    return ranges
+
+
+def measure_in_ranges(measure, ranges):
+    # ranges = None means "all the measures"
+    if ranges is None:
+        return True
+    for (first, last) in ranges:
+        if first <= measure <= last:
+            return True
+    return False
+
+
+def get_measures_range(single_line):
+    # return the (first,last) measure numbers of the whole file, or None if it holds no measure
+    numbers = list()
+    for number in re.findall(r'<measure\s+number="([^"]*)"', single_line):
+        try:
+            numbers.append(int(number))
+        except ValueError:
+            pass  # irregular measure number (for example "X1"), it is not a range limit
+    if not numbers:
+        return None
+    return (min(numbers), max(numbers))
+
+
+def measures_range_to_text(measures_range):
+    if not measures_range:
+        return ''
+    (first, last) = measures_range
+    if first == last:
+        return str(first)
+    return f'{first}-{last}'
+
+
+def iterate_pitched_notes(splt):
+    # walk over the splitted chunks and yield (index, chunk, part_id, staff, measure) of every
+    # pitched note. the annotated unit is one staff of one instrument (a 2 hands piano part is
+    # made of 2 such staves)
+    part_id = ''
+    measure = 0
+    for i in range(len(splt)):
+        string = splt[i]
+        parts = re.findall(r'<part\s+id="([^"]*)"', string)
+        if parts:
+            part_id = parts[-1]  # a chunk between 2 notes may close a part and open the next one
+        for number in re.findall(r'<measure\s+number="([^"]*)"', string):
+            try:
+                measure = int(number)
+            except ValueError:
+                pass  # irregular measure number (for example "X1"), keep the previous one
+        if 'pitch' in string:
+            staff = get_label(string, 'staff')
+            if not staff:
+                staff = '1'  # a single staff part may not write the <staff> label at all
+            yield i, string, part_id, staff, measure
+
+
+def scan_music_file(in_xml_file):
+    # scan the file once, and return both the list of the instrument staves that hold notes,
+    # and the (first,last) measures range of the whole file
+    single_line = load_xml_text(in_xml_file)
+    if not single_line:
+        return [], None
+
+    splt = split_to_notes(single_line)
+    part_names = get_part_names(single_line)
+
+    instrument_staves = list()
+    by_key = dict()
+    for i, string, part_id, staff, measure in iterate_pitched_notes(splt):
+        key = instrument_staff_key(part_id, staff)
+        if key not in by_key:
+            by_key[key] = {'key': key, 'part_id': part_id, 'staff': staff,
+                           'name': part_names.get(part_id, '') or part_id, 'count': 0}
+            instrument_staves.append(by_key[key])
+        by_key[key]['count'] += 1
+
+    staves_per_part = dict()
+    parts_per_name = dict()
+    for entry in instrument_staves:
+        staves_per_part[entry['part_id']] = staves_per_part.get(entry['part_id'], 0) + 1
+        parts_per_name.setdefault(entry['name'], set()).add(entry['part_id'])
+    for entry in instrument_staves:
+        label = entry['name']
+        if len(parts_per_name[entry['name']]) > 1:  # several parts share the same name, add the part id
+            label = f"{entry['part_id']}: {label}"
+        if staves_per_part[entry['part_id']] > 1:  # more than one staff (for example: piano left/right hand)
+            label = f"{label} - staff {entry['staff']}"
+        entry['label'] = label
+
+    return instrument_staves, get_measures_range(single_line)
+
+
+def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, selected_staves=None, measures=None):
+    # selected_staves is a collection of staff keys to annotate (None = annotate all the staves)
+    # measures is a list of (first,last) measures to annotate (None = annotate all the measures)
+    single_line = load_xml_text(in_xml_file)
+    if not single_line:
+        return [],[]
+
+    splt = split_to_notes(single_line)
+
+    prev_note = dict()  # last annotated note of each staff (staves are independent of each other)
+
     all_notes = list()
     all_text = list()
-    for i in range(N):
-        string = splt[i]
-        if 'pitch' in string:
-            step = get_label(string, 'step')
-            octave = get_label(string, 'octave')
-            alter = get_label(string, 'alter')
-            voice = get_label(string, 'voice')
-            (step, octave, alter) = soa_shift((step, octave, alter), semitonesShift)
-            current_note = step + octave + alter
-            if DEFAULT_PLACEMENT == 'above':
-                if voice == '1':  # place additional voice "above", where default voice text is "below"
-                    placement = 'placement="above" '
-                else:
-                    placement = 'placement="below" '
-            else:
-                if voice == '1':  # place additional voice "above", where default voice text is "below"
-                    placement = 'placement="below" '
-                else:
-                    placement = 'placement="above" '
+    for i, string, part_id, staff, measure in iterate_pitched_notes(splt):
+        key = instrument_staff_key(part_id, staff)
+        if selected_staves is not None and key not in selected_staves:
+            continue  # this staff was not selected by the user - leave it untouched
+        if not measure_in_ranges(measure, measures):
+            continue  # this measure is out of the selected measures range - leave it untouched
 
-            if 'text' not in string:
-                if '\n' in string:
-                    lyric = f'        <lyric number="1" {placement}color="#000000">\n          <syllabic>single</syllabic>\n          <text>NONE</text>\n          </lyric>'
-                    sss1 = string.split('\n')
-                    end = sss1.pop()
-                    sss1.append(lyric)
-                    sss1.append(end)
-                    string = '\n'.join(sss1)
-                else:
-                    lyric = f'<lyric number="1" {placement}color="#000000"><syllabic>single</syllabic><text>NONE</text></lyric>'
-                    string = string[0:-2] + lyric + string[-2:]
-
-            (step, alter) = change_notes_according_to_preference(step, alter)
-
-            if mode == 0:
-                new_text = note_to_text_heb(step, octave, alter)
-            elif mode == 1:
-                new_text = note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False)
-            elif mode == 2:
-                new_text = note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=False)
-            elif mode == 3:
-                new_text = note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=False)
-            elif mode == 4:
-                new_text = note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
-            elif mode == 5:
-                new_text = note_to_text_trumpet(step, octave, alter, addHebrew=False)
-            elif mode == 6:
-                new_text = note_to_text_baritone(step, octave, alter, addHebrew=False)
-            elif mode == 7:
-                new_text = note_to_text_tuba(step, octave, alter, addHebrew=False)
-            elif mode == 8:
-                new_text = note_to_text_Recorder(step, octave, alter, 0, addHebrew=False)
-            elif mode == 9:
-                new_text = note_to_text_english(step, octave, alter)
+        step = get_label(string, 'step')
+        octave = get_label(string, 'octave')
+        alter = get_label(string, 'alter')
+        voice = get_label(string, 'voice')
+        (step, octave, alter) = soa_shift((step, octave, alter), semitonesShift)
+        current_note = step + octave + alter
+        if DEFAULT_PLACEMENT == 'above':
+            if voice == '1':  # place additional voice "above", where default voice text is "below"
+                placement = 'placement="above" '
             else:
-                warndlg('ERROR', 'Text mode not supported!')
-            if '\n' in new_text:
-                text = '[' + new_text.replace('\n',',') + ']'
-                all_text.append(text)
+                placement = 'placement="below" '
+        else:
+            if voice == '1':  # place additional voice "above", where default voice text is "below"
+                placement = 'placement="below" '
             else:
-                all_text.append(new_text)
-            if '?' in new_text:
-                string = string.replace('color="#000000"', 'color="#FF0000"')
-            newstr = replace_text(string, new_text)
-            if 'tie type="stop"' not in string or prev_note != current_note:  # don't write note text if this is a 'tie' to previous note, and previous note is identical
-                splt[i] = newstr
-            prev_note = current_note
-            all_notes.append(f'{step}{octave}{alter}')
-            #print(f'{step}{octave}{alter}', end=',')
+                placement = 'placement="above" '
+
+        if 'text' not in string:
+            if '\n' in string:
+                lyric = f'        <lyric number="1" {placement}color="#000000">\n          <syllabic>single</syllabic>\n          <text>NONE</text>\n          </lyric>'
+                sss1 = string.split('\n')
+                end = sss1.pop()
+                sss1.append(lyric)
+                sss1.append(end)
+                string = '\n'.join(sss1)
+            else:
+                lyric = f'<lyric number="1" {placement}color="#000000"><syllabic>single</syllabic><text>NONE</text></lyric>'
+                string = string[0:-2] + lyric + string[-2:]
+
+        (step, alter) = change_notes_according_to_preference(step, alter)
+
+        if mode == 0:
+            new_text = note_to_text_heb(step, octave, alter)
+        elif mode == 1:
+            new_text = note_to_text_ChromaticHarmonica10(step, octave, alter, returnAllOptions=False)
+        elif mode == 2:
+            new_text = note_to_text_ChromaticHarmonica12(step, octave, alter, returnAllOptions=False)
+        elif mode == 3:
+            new_text = note_to_text_ChromaticHarmonica16(step, octave, alter, returnAllOptions=False)
+        elif mode == 4:
+            new_text = note_to_text_DiatonicHarmonicaC(step, octave, alter, 0)
+        elif mode == 5:
+            new_text = note_to_text_trumpet(step, octave, alter, addHebrew=False)
+        elif mode == 6:
+            new_text = note_to_text_baritone(step, octave, alter, addHebrew=False)
+        elif mode == 7:
+            new_text = note_to_text_tuba(step, octave, alter, addHebrew=False)
+        elif mode == 8:
+            new_text = note_to_text_Recorder(step, octave, alter, 0, addHebrew=False)
+        elif mode == 9:
+            new_text = note_to_text_english(step, octave, alter)
+        else:
+            warndlg('ERROR', 'Text mode not supported!')
+        if '\n' in new_text:
+            text = '[' + new_text.replace('\n',',') + ']'
+            all_text.append(text)
+        else:
+            all_text.append(new_text)
+        if '?' in new_text:
+            string = string.replace('color="#000000"', 'color="#FF0000"')
+        newstr = replace_text(string, new_text)
+        if 'tie type="stop"' not in string or prev_note.get(key) != current_note:  # don't write note text if this is a 'tie' to previous note, and previous note is identical
+            splt[i] = newstr
+        prev_note[key] = current_note
+        all_notes.append(f'{step}{octave}{alter}')
+        #print(f'{step}{octave}{alter}', end=',')
 
     output = 'note'.join(splt)
 
@@ -871,12 +1125,71 @@ class DndLineEdit(QLineEdit):
             self.dropFcn(filepath)
 
 
+class InstrumentStavesDialog(QDialog):
+    # let the user choose which instruments/staves of the input file will be annotated
+    def __init__(self, parent, instrument_staves, selected_staves):
+        QDialog.__init__(self, parent)
+        self.setWindowTitle('Select Instruments & Staves')
+        self.setFont(parent.font())
+        self.checkboxes = list()
+
+        grid = QGridLayout(self)
+        grid.setSpacing(10)
+
+        index = 0
+        grid.addWidget(QLabel('Annotate only the checked staves:'), index, 0, 1, 2)
+
+        for entry in instrument_staves:
+            index += 1
+            checkbox = QCheckBox(f"{entry['label']}   ({entry['count']} notes)")
+            checkbox.setChecked((selected_staves is None) or (entry['key'] in selected_staves))
+            checkbox.staff_key = entry['key']
+            self.checkboxes.append(checkbox)
+            grid.addWidget(checkbox, index, 0, 1, 2)
+
+        index += 1
+        self.select_all_btn = QPushButton('Select All')
+        self.select_all_btn.clicked.connect(self.select_all)
+        self.clear_all_btn = QPushButton('Clear All')
+        self.clear_all_btn.clicked.connect(self.clear_all)
+        grid.addWidget(self.select_all_btn, index, 0)
+        grid.addWidget(self.clear_all_btn,  index, 1)
+
+        index += 1
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        grid.addWidget(buttons, index, 0, 1, 2)
+
+    def select_all(self):
+        for checkbox in self.checkboxes:
+            checkbox.setChecked(True)
+
+    def clear_all(self):
+        for checkbox in self.checkboxes:
+            checkbox.setChecked(False)
+
+    def selected_staves(self):
+        return [checkbox.staff_key for checkbox in self.checkboxes if checkbox.isChecked()]
+
+    def accept(self):
+        if not self.selected_staves():
+            warndlg('No Staff Selected', 'ERROR: at least one staff must be selected')
+            return
+        QDialog.accept(self)
+
+
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         QMainWindow.__init__(self)
         self.input_file = ''
         self.output_file = ''
         self.semitones_shift = 0
+        self.instrument_staves = list()  # all the instrument staves found in the input file
+        self.selected_staves = None      # keys of the staves to annotate (None = all the staves)
+        self.file_measures = None        # the (first,last) measures range of the input file
+        self.measures = None             # the measures to annotate (None = all the measures)
+        self.measures_text = ''          # last valid content of the measures text box
         self.initUI()
 
     def closeEvent(self, event):
@@ -885,13 +1198,13 @@ class MainWindow(QMainWindow):
 
 
     def initUI(self):
-        self.setWindowIcon(QIcon("google-earth-icon.png"))
+        self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.8'
+        self.version = 'v0.5.1'
 
         defaultGeometry = (600, 200, 900, 200)
         self.left, self.top, self.width, self.height = defaultGeometry
-        self.setWindowTitle(self.title)
+        self.setWindowTitle(f'{self.title} - {self.version}')
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         defaultDpi = 100
@@ -919,9 +1232,8 @@ class MainWindow(QMainWindow):
         self.input_file_title.setFixedWidth(titleWidth)
         self.input_file_edit = DndLineEdit(self)
         self.input_file_edit.setText(str(self.input_file))
-        #self.input_file_edit.editingFinished.connect(self.input_file_changed)
+        self.input_file_edit.editingFinished.connect(self.input_file_changed)
         self.input_file_edit.setDropFcn(self.handleDropFileInput)
-        #self.input_file_edit.returnPressed.connect(self.input_file_changed)
         self.input_file_edit.setFont(font)
         self.input_file_edit.setMinimumWidth(bigBtnWidth)
 
@@ -963,6 +1275,31 @@ class MainWindow(QMainWindow):
         self.semitones_shift_edit.returnPressed.connect(self.semitones_shift_changed)
         self.semitones_shift_edit.setFont(font)
         self.semitones_shift_edit.setMinimumWidth(bigBtnWidth)
+
+        self.instruments_title = QLabel('Instruments:')
+        self.instruments_title.setFont(font1)
+        self.instruments_title.setFixedWidth(titleWidth)
+        self.instruments_edit = QLineEdit()
+        self.instruments_edit.setReadOnly(True)
+        self.instruments_edit.setFont(font)
+        self.instruments_edit.setMinimumWidth(bigBtnWidth)
+
+        self.select_staves_btn = QPushButton('Select')
+        self.select_staves_btn.setFixedHeight(btnHeight)
+        self.select_staves_btn.setFixedWidth(btnWidth)
+        self.select_staves_btn.setCheckable(False)
+        self.select_staves_btn.setFont(font1)
+        self.select_staves_btn.clicked.connect(self.select_instrument_staves)
+
+        self.measures_title = QLabel('Measures:')
+        self.measures_title.setFont(font1)
+        self.measures_title.setFixedWidth(titleWidth)
+        self.measures_edit = QLineEdit()
+        self.measures_edit.editingFinished.connect(self.measures_changed)
+        self.measures_edit.returnPressed.connect(self.measures_changed)
+        self.measures_edit.setToolTip('Measures to annotate, for example: 3-8 or 1-4,9,12-16')
+        self.measures_edit.setFont(font)
+        self.measures_edit.setMinimumWidth(bigBtnWidth)
 
         self.text_mode_title = QLabel('Text Mode:')
         self.text_mode_title.setFont(font1)
@@ -1067,6 +1404,15 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.semitones_shift_edit,   index, 1, 1, 2)
 
         index += 1
+        grid.addWidget(self.instruments_title,  index, 0)
+        grid.addWidget(self.instruments_edit,   index, 1, 1, 2)
+        grid.addWidget(self.select_staves_btn,  index, 3)
+
+        index += 1
+        grid.addWidget(self.measures_title,     index, 0)
+        grid.addWidget(self.measures_edit,      index, 1, 1, 2)
+
+        index += 1
         grid.addWidget(self.options_title,      index, 0)
 
         index += 1
@@ -1096,6 +1442,7 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.calc_btn,  index,   2, 1, 1)
 
         self.update_summary_titles()
+        self.update_instrument_staves_text()
         self.show()
 
     def combo_activated(self):
@@ -1209,11 +1556,75 @@ class MainWindow(QMainWindow):
             self.summary1_text.setVisible(True)
 
     def input_file_changed(self,extText=''):
-        sender = self.sender()
-        text = sender.text()
+        text = self.input_file_edit.text()
+        if text == self.input_file:
+            return  # the input file did not change, nothing to do
         self.input_file = text
-        #print(f'input_file = {text}')
-        #self.update_gui_due_to_input_file_change('input')
+        self.auto_update_output_file()
+        self.refresh_file_info()
+
+    def refresh_file_info(self):
+        # rescan the input file, and reset the selection to all its staves and all its measures
+        self.instrument_staves = list()
+        self.selected_staves = None
+        self.file_measures = None
+        if self.input_file and os.path.isfile(self.input_file):
+            self.instrument_staves, self.file_measures = scan_music_file(self.input_file)
+        self.update_instrument_staves_text()
+        self.reset_measures()
+
+    def reset_measures(self):
+        # show the whole measures range of the input file, and annotate all of it
+        self.measures = None
+        self.measures_text = measures_range_to_text(self.file_measures)
+        self.measures_edit.setText(self.measures_text)
+
+    def measures_changed(self):
+        # validate the measures text box, and restore its last valid content if it is not a range
+        text = self.measures_edit.text().strip()
+        ranges = parse_measures_range(text) if text else None
+        if text and ranges is None:
+            warndlg('ERROR in Measures value',
+                    f'ERROR: unsupported measures range: "{text}"'
+                    f'\nuse a range like "3-8", a single measure like "5", or a list like "1-4,9,12-16"')
+            self.measures_edit.setText(self.measures_text)  # restore the last valid range
+            return
+        self.measures = ranges  # an empty text box means "all the measures"
+        self.measures_text = text
+
+    def selected_staves_labels(self):
+        return [entry['label'] for entry in self.instrument_staves
+                if (self.selected_staves is None) or (entry['key'] in self.selected_staves)]
+
+    def update_instrument_staves_text(self):
+        total = len(self.instrument_staves)
+        self.select_staves_btn.setEnabled(total > 0)
+        if total == 0:
+            self.instruments_edit.setText('')
+            self.instruments_edit.setToolTip('')
+            return
+        labels = self.selected_staves_labels()
+        if total == 1:  # a single staff file has nothing to choose from
+            text = labels[0]
+        elif self.selected_staves is None:
+            text = f'All {total} selected: ' + ', '.join(labels)
+        else:
+            text = f'{len(labels)} of {total} selected: ' + ', '.join(labels)
+        self.instruments_edit.setText(text)
+        self.instruments_edit.setToolTip(text)
+
+    def select_instrument_staves(self):
+        if not self.instrument_staves:
+            warndlg('No Staves Found', 'ERROR: no staves found, please load a valid MusicXML input file first')
+            return
+        dialog = InstrumentStavesDialog(self, self.instrument_staves, self.selected_staves)
+        if dialog.exec_() == QDialog.Accepted:
+            selected = dialog.selected_staves()
+            if len(selected) == len(self.instrument_staves):
+                self.selected_staves = None  # all the staves are selected
+            else:
+                self.selected_staves = selected
+            self.update_instrument_staves_text()
 
     def output_file_changed(self):
         sender = self.sender()
@@ -1243,7 +1654,7 @@ class MainWindow(QMainWindow):
         self.input_file = filepath
         self.input_file_edit.setText(filepath)
         self.auto_update_output_file()
-        #self.update_gui_due_to_input_file_change('input')
+        self.refresh_file_info()
 
 
     def get_Save_FileName(self, text_box):
@@ -1274,7 +1685,7 @@ class MainWindow(QMainWindow):
             folder = getConfigVar('musicxmlannotator_lastLoadedInputFolder','C:/')  # get last loaded folder from persistence config file
 
         selectedFilePath, _ = QFileDialog.getOpenFileName(self, "Choose Input File", folder,
-                                                 "MusicXML (*.xml)", options=options)
+                                                 "MusicXML (*.xml *.musicxml)", options=options)
 
         if len(selectedFilePath) == 0:
             self.statusBar().showMessage("load input file: canceled by user")
@@ -1289,7 +1700,7 @@ class MainWindow(QMainWindow):
         self.input_file = fileSelected
         self.input_file_edit.setText(fileSelected)
         self.auto_update_output_file()
-        #self.update_gui_due_to_input_file_change('input')
+        self.refresh_file_info()
 
     def select_output_file(self):
         fileSelected = self.get_Save_FileName(self.output_file_edit)
@@ -1317,13 +1728,22 @@ class MainWindow(QMainWindow):
         self.calc(True)
 
     def calc(self, saveOutput=False):
+        self.input_file_changed()  # in case the user updated the input text box manually
+        self.measures_changed()    # in case the user updated the measures text box manually
         self.output_file = self.output_file_edit.text()  # in case the user update the text box manually
         index = self.text_mode_combo.currentIndex()
         if saveOutput:
-            all_notes,all_text = add_text_to_notes(self.input_file, self.output_file, index, self.semitones_shift)
+            all_notes,all_text = add_text_to_notes(self.input_file, self.output_file, index, self.semitones_shift, self.selected_staves, self.measures)
         else:
-            all_notes,all_text = add_text_to_notes(self.input_file, '', index, self.semitones_shift)
+            all_notes,all_text = add_text_to_notes(self.input_file, '', index, self.semitones_shift, self.selected_staves, self.measures)
         self.consoleViewer.clear()
+        if self.instrument_staves:
+            self.consoleViewer.append('Annotated Staves:')
+            self.consoleViewer.append(', '.join(self.selected_staves_labels()))
+            self.consoleViewer.append('')
+            self.consoleViewer.append('Annotated Measures:')
+            self.consoleViewer.append(self.measures_text if self.measures else 'all')
+            self.consoleViewer.append('')
         self.consoleViewer.append('Notes:')
         self.consoleViewer.append(','.join(all_notes))
         self.consoleViewer.append('\nTexts:')
@@ -1403,7 +1823,18 @@ def build_note_characters():
     first_pitch = 60 - (4 - int(octaves[0]))*12
     texts = list()
     notes = list()
-    mode = 5
+    mode = 10
+
+    # For mode 10 (Generic Chromatic Harmonica):
+    #dct = create_chromatic_harmonica_notes_dictionary('G3')
+    #dct = create_chromatic_harmonica_notes_dictionary('A3')
+    #dct = create_chromatic_harmonica_notes_dictionary('B3b')
+    #dct = create_chromatic_harmonica_notes_dictionary('C4')
+    #dct = create_chromatic_harmonica_notes_dictionary('D4')
+    #dct = create_chromatic_harmonica_notes_dictionary('E4')
+    #dct = create_chromatic_harmonica_notes_dictionary('F4')
+    dct = create_chromatic_harmonica_notes_dictionary('E4b')
+
     for octave in octaves:
         for i in range(len(steps)):
             step = steps[i]
@@ -1428,6 +1859,8 @@ def build_note_characters():
                 new_text = note_to_text_Recorder(step, octave, alter, 0, addHebrew=True)
             elif mode == 9:
                 new_text = note_to_text_english(step, octave, alter)
+            elif mode == 10:  # Generic Chromatic Harmonica
+                new_text = note_to_text_ChromaticHarmonica(dct, step, octave, alter, returnAllOptions=False)
             else:
                 warndlg('ERROR', 'Text mode not supported!')
             texts.append(new_text)
@@ -1435,16 +1868,17 @@ def build_note_characters():
     non_valid_at_beginning = 0
     non_valid_at_end = len(texts)
     LENGTH = len(texts)
-    for text in texts:
-        if '?' in text:
-            non_valid_at_beginning += 1
-        else:
-            break
-    for text in texts[-1::-1]:
-        if '?' in text:
-            non_valid_at_end -= 1
-        else:
-            break
+    if 0:  # remove '?' marks of unsupported notes
+        for text in texts:
+            if '?' in text:
+                non_valid_at_beginning += 1
+            else:
+                break
+        for text in texts[-1::-1]:
+            if '?' in text:
+                non_valid_at_end -= 1
+            else:
+                break
     texts = texts[non_valid_at_beginning:non_valid_at_end]
     notes = notes[non_valid_at_beginning:non_valid_at_end]
     first_pitch += non_valid_at_beginning
@@ -1466,16 +1900,28 @@ def build_note_characters():
     ind = line3.rfind(',')
     line3 = line3[0:ind]
     line3 += ']'
-    print(line1)
-    print(line2)
-    print(line3)
+    print('      //                            ' + line1)
+    print('      property variant fingerings : ' + line2)
+    print('      property variant notenames  : ' + line3)
+
+
+def set_windows_app_id(app_id=APP_ID):
+    # without an explicit "app user model id" Windows groups the app under the generic python
+    # icon on the taskbar, instead of using the icon of the window
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    except Exception as e:
+        err = str(e)  # not running on Windows, keep the default behavior
 
 
 if __name__ == '__main__':
-    if 1:  # build only
+    if 0:  # build only
         build_note_characters()
     else:
+        set_windows_app_id()
         app = QApplication(sys.argv)
+        app.setWindowIcon(QIcon(APP_ICON_FILE))  # used by every window and dialog of the app
         mainWin = MainWindow()
         mainWin.show()
         sys.exit(app.exec_())
