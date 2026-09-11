@@ -48,9 +48,11 @@ when "Run" writes the output file.
 
 For the Diatonic Harmonica the table also holds an "Average Difficulty" row: every note is given a difficulty
 according to the way it is played (0 for a plain blow or draw note, 1 for a half step draw bend, up to 6 for an
-overdraw, and 10 for a note that is not on the harmonica at all), and the row shows the average over the notes.
-The lowest value of the row is marked in green - this is the shift that is the easiest to play. The weights
-live in the DIATONIC_DIFFICULTY dictionary at the top of music_annotator.py, tune them to your own playing.
+overdraw), and the row shows the average over the notes that can be played. The notes that are not on the
+harmonica at all are not part of it - they are not hard to play, they cannot be played - so read that row
+together with the "Impossible Notes Count" row right below it. The lowest value of the row is marked in green.
+The weights live in the DIATONIC_DIFFICULTY dictionary at the top of music_annotator.py, tune them to your
+own playing.
 
 Note that the tool doesn't supports compressed MusicXML files.
 

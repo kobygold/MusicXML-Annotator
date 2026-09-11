@@ -852,30 +852,35 @@ def empty_alterations():
 
 
 # how hard each way of playing a note is on a diatonic harmonica, from 0 (a plain blow or draw
-# note, nothing to do) to 10 (the note is simply not on the harmonica). the draw bends come first
-# because they are the ones every player learns, the blow bends live in the high register and need
-# another embouchure, and the overbends need a well gapped harmonica on top of the technique.
+# note, nothing to do) to 6 (an overdraw). the draw bends come first because they are the ones
+# every player learns, the blow bends live in the high register and need another embouchure, and
+# the overbends need a well gapped harmonica on top of the technique.
 # tune these values to your own playing if you disagree with them
-DIATONIC_DIFFICULTY = {'drawbend05': 1,   # half step draw bend, the first bend one learns
-                       'drawbend10': 2,   # whole step draw bend
-                       'drawbend15': 3,   # 1.5 step draw bend, hole 3 only, hard to keep in tune
-                       'blowbend05': 3,   # half step blow bend, high register
-                       'blowbend10': 4,   # whole step blow bend, hole 10
-                       'overblow': 5,     # overblow, needs a gapped harmonica
-                       'overdraw': 6,     # overdraw, the hardest one to control
-                       'impossible': 10}  # not playable at all on this harmonica
+DIATONIC_DIFFICULTY = {'drawbend05': 1,  # half step draw bend, the first bend one learns
+                       'drawbend10': 2,  # whole step draw bend
+                       'drawbend15': 3,  # 1.5 step draw bend, hole 3 only, hard to keep in tune
+                       'blowbend05': 3,  # half step blow bend, high register
+                       'blowbend10': 4,  # whole step blow bend, hole 10
+                       'overblow': 5,    # overblow, needs a gapped harmonica
+                       'overdraw': 6}    # overdraw, the hardest one to control
 
 
 def diatonic_difficulty(counts):
-    # average difficulty of a note, over all the counted notes.
+    # average difficulty of a note, over the notes that can be played on the harmonica at all.
+    # the impossible notes are left out of it, they are not "hard", they cannot be played, and
+    # their own counter says how many of them there are.
     # the plain blow and draw notes are worth 0, so only the altered ones are summed here
-    if not counts['total']:
-        return ''  # no Calc yet, or no note at all
+    if counts['total'] == '':
+        return ''  # no Calc yet
+
+    playable = counts['total'] - counts['impossible']
+    if playable <= 0:
+        return ''  # not a single note can be played at this shift
 
     score = 0
     for (key, weight) in DIATONIC_DIFFICULTY.items():
         score += counts[key] * weight
-    return score / counts['total']
+    return score / playable
 
 
 def summary_value_text(value):
@@ -1328,7 +1333,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.5.4'
+        self.version = 'v0.5.5'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
@@ -1656,8 +1661,10 @@ class MainWindow(QMainWindow):
             if names[row] == 'Average Difficulty':
                 weights = ', '.join(f'{key}={weight}' for (key, weight) in DIATONIC_DIFFICULTY.items())
                 table.verticalHeaderItem(row).setToolTip(
-                    'Average difficulty of a note: a plain blow or draw note is worth 0, and\n'
-                    f'{weights}.\nThe lowest value is the easiest shift to play, and it is marked in green.')
+                    'Average difficulty of a note that can be played: a plain blow or draw note\n'
+                    f'is worth 0, and {weights}.\n'
+                    'The impossible notes are not part of it, see their own row for them.\n'
+                    'The lowest value is the easiest shift to play, and it is marked in green.')
         table.setHorizontalHeaderLabels([f'{shift:+d}' if shift else '0' for shift in SEMITONES_SHIFTS])
 
         highlight = QColor(*HIGHLIGHT_COLOR)
