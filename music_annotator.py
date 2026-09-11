@@ -1,14 +1,15 @@
 import sys
 import codecs
 import re
+import math
 import argparse
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QAction, QComboBox, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QTextBrowser, QSpacerItem, QSizePolicy, QPushButton, QFileDialog, QMenu, QMessageBox,
                              QToolButton, QSplitter, QCompleter, QDialog, QDialogButtonBox, QGridLayout, QCheckBox, QColorDialog,
-                             QTableWidget, QTableWidgetItem, QAbstractItemView)
+                             QTableWidget, QTableWidgetItem, QAbstractItemView, QStyledItemDelegate)
 
-from PyQt5.QtGui import QIcon,QColor,QFont,QCursor,QPixmap,QClipboard
+from PyQt5.QtGui import QIcon,QColor,QFont,QCursor,QPixmap,QClipboard,QPen
 from PyQt5.QtCore import QSize, Qt, QTimer, QEvent
 
 from PersistenceUtils import *
@@ -48,6 +49,34 @@ SEMITONES_SHIFTS = list(range(-12, 13))  # the shifts calculated for that table
 SUMMARY_COLUMN_WIDTH = 42   # width of one semitones shift column of that table
 SUMMARY_HEADER_WIDTH = 160  # width of the counter names column of that table
 HIGHLIGHT_COLOR = (255, 243, 176)  # background of the column of the selected semitones shift
+
+# the difficulty cells are shaded from green (the easiest playable shift) to a faint green (the
+# hardest one), and the easiest one of all is framed. the shifts that cannot play the whole piece
+# are not part of the shading, they are painted red instead
+DIFFICULTY_EASY_COLOR = (64, 188, 64)
+DIFFICULTY_HARD_COLOR = (212, 242, 212)
+DIFFICULTY_UNPLAYABLE_COLOR = (240, 105, 105)
+DIFFICULTY_BEST_OUTLINE = (0, 80, 0)
+DIFFICULTY_SHADE_CURVE = 29  # the higher it is, the more the easy shifts are told apart (0 = linear)
+OUTLINE_ROLE = Qt.UserRole + 1  # set on the item that has to be framed
+
+
+def blend_colors(first, second, ratio):
+    # ratio 0 gives the first color, ratio 1 gives the second one
+    return tuple(int(round(first[i] + (second[i] - first[i])*ratio)) for i in range(3))
+
+
+def shade_ratio(value, lowest, highest):
+    # where a value stands between the lowest and the highest one, on a logarithmic scale that
+    # spreads the small values apart: what separates two easy shifts is worth more than the same
+    # difference between two hard ones, which are out of reach anyway
+    if highest <= lowest:
+        return 0.0
+
+    ratio = (value - lowest) / (highest - lowest)
+    if DIFFICULTY_SHADE_CURVE <= 0:
+        return ratio
+    return math.log(1 + DIFFICULTY_SHADE_CURVE*ratio) / math.log(1 + DIFFICULTY_SHADE_CURVE)
 
 APP_ICON_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.png')
 APP_ID = 'KobyGold.MusicXMLAnnotator'  # needed by Windows to show the app icon on the taskbar
@@ -1248,6 +1277,22 @@ class DndLineEdit(QLineEdit):
             self.dropFcn(filepath)
 
 
+class OutlineDelegate(QStyledItemDelegate):
+    # a QTableWidgetItem cannot hold a border, so the cells flagged with OUTLINE_ROLE get theirs
+    # painted here, on top of everything else
+    def paint(self, painter, option, index):
+        QStyledItemDelegate.paint(self, painter, option, index)
+        if not index.data(OUTLINE_ROLE):
+            return
+
+        painter.save()
+        pen = QPen(QColor(*DIFFICULTY_BEST_OUTLINE))
+        pen.setWidth(2)
+        painter.setPen(pen)
+        painter.drawRect(option.rect.adjusted(1, 1, -2, -2))
+        painter.restore()
+
+
 class ClickableLineEdit(QLineEdit):
     def __init__(self, parent):
         super(ClickableLineEdit, self).__init__(parent)
@@ -1342,7 +1387,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.6.0'
+        self.version = 'v0.6.3'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
@@ -1500,6 +1545,7 @@ class MainWindow(QMainWindow):
         self.summary_table.horizontalHeader().setDefaultSectionSize(SUMMARY_COLUMN_WIDTH)
         self.summary_table.verticalHeader().setDefaultSectionSize(txtHeight + 3)
         self.summary_table.verticalHeader().setFixedWidth(SUMMARY_HEADER_WIDTH)
+        self.summary_table.setItemDelegate(OutlineDelegate(self.summary_table))
         self.summary_table.setMinimumWidth(300)
         self.summary_table.setVisible(False)
 
@@ -1663,13 +1709,14 @@ class MainWindow(QMainWindow):
                 if counts and counts['total'] and counts['impossible'] == 0:
                     playable_shifts.append(shift)
 
-        best_values = dict()
+        # the lowest and the highest value of those shifts, to shade every cell between them
+        value_ranges = dict()
         for row in range(len(first_rows)):
             if first_rows[row][3]:
                 values = [rows_per_shift[shift][row][1] for shift in playable_shifts]
                 values = [value for value in values if value != '']
                 if values:
-                    best_values[row] = min(values)
+                    value_ranges[row] = (min(values), max(values))
 
         table.clear()
         table.setRowCount(len(names))
@@ -1682,8 +1729,11 @@ class MainWindow(QMainWindow):
                     'Average difficulty of a note that can be played: a plain blow or draw note\n'
                     f'is worth 0, and {weights}.\n'
                     'The impossible notes are not part of it, see their own row for them.\n'
-                    'The green mark is the easiest shift to play among the shifts that can play\n'
-                    'every note of the piece. Nothing is marked when there is no such shift.')
+                    'The cells are shaded from green (easiest) to a faint green (hardest),\n'
+                    'on a scale that spreads the easy shifts apart. Only the shifts that can\n'
+                    'play every note of the piece take part in it, the shifts that leave notes\n'
+                    'that cannot be played at all are painted red instead.\n'
+                    'The easiest shift of all is framed.')
         table.setHorizontalHeaderLabels([f'{shift:+d}' if shift else '0' for shift in SEMITONES_SHIFTS])
 
         highlight = QColor(*HIGHLIGHT_COLOR)
@@ -1703,18 +1753,32 @@ class MainWindow(QMainWindow):
                 (name, value, colored, best) = rows_per_shift[shift][row]
                 item = QTableWidgetItem(summary_value_text(value))
                 item.setTextAlignment(Qt.AlignCenter)
+
                 if colored and value != '':
                     item.setForeground(QColor(0, 155, 0) if value == 0 else QColor(255, 0, 0))
-                if best and row in best_values and shift in playable_shifts and value == best_values[row]:
-                    item.setForeground(QColor(0, 155, 0))  # the easiest shift to play
-                    font = item.font()
-                    font.setBold(True)
-                    item.setFont(font)
+
+                shaded = False
+                if best and value != '':
+                    if shift in playable_shifts and row in value_ranges:
+                        # green for the easiest playable shift, faint green for the hardest one
+                        (lowest, highest) = value_ranges[row]
+                        ratio = shade_ratio(value, lowest, highest)
+                        item.setBackground(QColor(*blend_colors(DIFFICULTY_EASY_COLOR,
+                                                                DIFFICULTY_HARD_COLOR, ratio)))
+                        if value == lowest:
+                            item.setData(OUTLINE_ROLE, True)  # the easiest shift to play
+                    else:
+                        # this shift leaves notes that cannot be played at all
+                        item.setBackground(QColor(*DIFFICULTY_UNPLAYABLE_COLOR))
+                    shaded = True
+
                 if selected:
-                    item.setBackground(highlight)
+                    if not shaded:  # the shading of the difficulty row wins over the highlight
+                        item.setBackground(highlight)
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
+
                 table.setItem(row, column, item)
 
         self.resize_summary_table()

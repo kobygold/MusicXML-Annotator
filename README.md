@@ -79,9 +79,11 @@ bend, up to 6 for an overdraw), and the row shows the average over the notes tha
 The notes that are not on the harmonica at all are not part of it - they are not hard to play, they
 cannot be played - so read that row together with the "Impossible Notes Count" row right below it.
 
-The easiest shift is marked in green. It is looked for only among the shifts that can play every note
-of the piece, so that a shift that is "easy" only because most of the piece dropped out of it is never
-suggested; when no shift can play the whole piece, nothing is marked.
+The cells of that row are shaded from green (the easiest shift) to white (the hardest one), and the
+easiest one of all is framed, so that the whole row can be read as a heat strip. Only the shifts that
+can play every note of the piece take part in it - a shift that is "easy" only because most of the
+piece dropped out of it is never suggested, so the shifts that leave impossible notes behind keep a
+plain background and are never framed. When no shift can play the whole piece, nothing is shaded.
 
 The weights live in the `DIATONIC_DIFFICULTY` dictionary at the top of `music_annotator.py`, tune them
 to your own playing.
