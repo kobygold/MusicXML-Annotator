@@ -39,7 +39,7 @@ SUMMARY_ROWS = 12  # amount of (title,value) rows reserved for the summary
 # the text modes, in the order of the combo box (the first one is the default one).
 # TEXT_MODE_NAMES is both the name extension of the output file and the name used on the command line
 TEXT_MODE_TITLES = ['Hebrew Names', 'Chromatic Harmonica 10', 'Chromatic Harmonica 12',
-                    'Chromatic Harmonica 16', 'Diatonic Harmonica (C)', 'Trumpet+Hebrew',
+                    'Chromatic Harmonica 16', 'Diatonic Harmonica', 'Trumpet+Hebrew',
                     'Baritone+Hebrew', 'Tuba+Hebrew', 'Recorder+Hebrew', 'English+Hebrew']
 TEXT_MODE_NAMES = ['Hebrew', 'Chromatic10', 'Chromatic12', 'Chromatic16', 'DiatonicC',
                    'Trumpet', 'Baritone', 'Tuba', 'Recorder', 'English']
@@ -67,6 +67,20 @@ def harmonica_key_of_shift(semitonesShift, short=False):
 
 HARMONICA_MODES = (1, 2, 3, 4)  # the text modes that get the semitones shifts table
 SEMITONES_SHIFTS = list(range(-12, 13))  # the shifts calculated for that table
+
+# every diatonic harmonica the annotation can be written for, from the lowest to the highest.
+# note_to_text_DiatonicHarmonicaC() only knows the C harmonica, and a harmonica of another key is
+# read as an extra semitones shift on it: the shift that names this key (see harmonica_key_of_shift)
+DIATONIC_KEY_SHIFTS = sorted(SEMITONES_SHIFTS, reverse=True)  # from the lowest harmonica to the highest
+DIATONIC_KEY_NAMES = [harmonica_key_of_shift(shift) for shift in DIATONIC_KEY_SHIFTS]
+DIATONIC_DEFAULT_KEY = 'C'
+
+
+def diatonic_key_shift(key):
+    # the extra semitones shift that turns the C harmonica annotation into this key
+    if key in DIATONIC_KEY_NAMES:
+        return DIATONIC_KEY_SHIFTS[DIATONIC_KEY_NAMES.index(key)]
+    return 0
 SUMMARY_COLUMN_WIDTH = 42   # width of one semitones shift column of that table
 SUMMARY_HEADER_WIDTH = 160  # width of the counter names column of that table
 HIGHLIGHT_COLOR = (255, 243, 176)  # background of the column of the selected semitones shift
@@ -1139,6 +1153,14 @@ def note_to_text(mode, step, octave, alter):
     return '?'
 
 
+def total_semitones_shift(mode, semitonesShift, keyShift):
+    # playing a diatonic harmonica of another key is the same as reading a C one a few semitones
+    # away, so its key simply adds to the semitones shift. the other modes have no key to choose
+    if mode == 4:
+        return semitonesShift + keyShift
+    return semitonesShift
+
+
 def annotation_text(mode, soa, semitonesShift):
     # the annotation of one note, shifted and normalized the same way add_text_to_notes() does it
     (step, octave, alter) = soa_shift(soa, semitonesShift)
@@ -1162,7 +1184,7 @@ def collect_pitched_notes(splt, selected_staves=None, measures=None):
     return notes
 
 
-def count_all_shifts(in_xml_file, mode, shifts=None, selected_staves=None, measures=None):
+def count_all_shifts(in_xml_file, mode, shifts=None, selected_staves=None, measures=None, keyShift=0):
     # count the alterations of every semitones shift, returns {shift: counters}
     global last_pressed
     if shifts is None:
@@ -1177,14 +1199,16 @@ def count_all_shifts(in_xml_file, mode, shifts=None, selected_staves=None, measu
     counts_per_shift = dict()
     for shift in shifts:
         last_pressed = False  # the harmonica slide starts released on every pass
-        all_text = [annotation_text(mode, soa, shift) for soa in notes]
+        total = total_semitones_shift(mode, shift, keyShift)
+        all_text = [annotation_text(mode, soa, total) for soa in notes]
         counts_per_shift[shift] = count_alterations(all_text)
     return counts_per_shift
 
 
-def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, selected_staves=None, measures=None):
+def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, selected_staves=None, measures=None, keyShift=0):
     # selected_staves is a collection of staff keys to annotate (None = annotate all the staves)
     # measures is a list of (first,last) measures to annotate (None = annotate all the measures)
+    # keyShift is the extra shift of the chosen diatonic harmonica key (0 = the C harmonica)
     single_line = load_xml_text(in_xml_file)
     if not single_line:
         return [],[]
@@ -1193,6 +1217,8 @@ def add_text_to_notes(in_xml_file, out_xml_file='', mode=0, semitonesShift=0, se
 
     global last_pressed
     last_pressed = False  # the harmonica slide starts released, so that every run gives the same output
+
+    semitonesShift = total_semitones_shift(mode, semitonesShift, keyShift)
 
     prev_note = dict()  # last annotated note of each staff (staves are independent of each other)
 
@@ -1408,7 +1434,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.setWindowIcon(QIcon(APP_ICON_FILE))
         self.title = 'MusicXML Auto Annotator'
-        self.version = 'v0.6.4'
+        self.version = 'v0.6.6'
 
         # wide enough to show the whole semitones shifts table without scrolling it,
         # but never wider than the screen
@@ -1524,6 +1550,15 @@ class MainWindow(QMainWindow):
         self.text_mode_combo.setFont(font1)
         selected_mode = 0
         self.text_mode_type = selected_mode
+
+        self.key_combo = QComboBox(self)
+        self.key_combo.addItems(DIATONIC_KEY_NAMES)
+        self.key_combo.setCurrentIndex(DIATONIC_KEY_NAMES.index(DIATONIC_DEFAULT_KEY))
+        self.key_combo.activated.connect(self.combo_activated)
+        self.key_combo.setFont(font1)
+        self.key_combo.setFixedWidth(btnWidth)
+        self.key_combo.setToolTip('Key of the diatonic harmonica to write the annotation for')
+        self.key_combo.setVisible(False)  # only the diatonic harmonica has a key to choose
         #index = self.text_mode_combo.findText(selected_mode, Qt.MatchFixedString)
         #if index >= 0:
         #    self.text_mode_combo.setCurrentIndex(index)
@@ -1605,6 +1640,7 @@ class MainWindow(QMainWindow):
         index += 1
         grid.addWidget(self.text_mode_title,       index, 0)
         grid.addWidget(self.text_mode_combo,       index, 1, 1, 2)
+        grid.addWidget(self.key_combo,             index, 3)
 
         index += 1
         grid.addWidget(self.semitones_shift_title,  index, 0)
@@ -1650,6 +1686,18 @@ class MainWindow(QMainWindow):
             self.text_mode_type = sender.currentText()
             self.auto_update_output_file()
             self.clear_summary()
+        elif sender == self.key_combo:
+            self.auto_update_output_file()
+            self.clear_summary()
+
+    def diatonic_key(self):
+        # the key of the harmonica to annotate for, meaningful for the diatonic mode only
+        return self.key_combo.currentText()
+
+    def key_shift(self):
+        if self.text_mode_combo.currentIndex() != 4:
+            return 0
+        return diatonic_key_shift(self.diatonic_key())
 
     def summary_rows(self, counts, shift=None):
         # the (title, value, colored, best) summary rows of the selected text mode.
@@ -1660,6 +1708,7 @@ class MainWindow(QMainWindow):
         rows = list()
 
         if mode == 4 and shift is not None:  # the harmonica this shift stands for
+            shift += self.key_shift()  # the chosen key is the harmonica of the column with no shift
             rows.append(('Harmonica', harmonica_key_of_shift(shift, short=True), False, False))
 
         rows.append(('Total Amount of Notes', counts['total'], False, False))
@@ -1686,6 +1735,7 @@ class MainWindow(QMainWindow):
 
     def update_summary(self):
         # the harmonica modes get a table of every semitones shift, the other modes a list of rows
+        self.key_combo.setVisible(self.text_mode_combo.currentIndex() == 4)
         as_table = self.text_mode_combo.currentIndex() in HARMONICA_MODES
         counts = self.summary_counts if self.summary_counts else empty_alterations()
         rows = self.summary_rows(counts)
@@ -1787,7 +1837,7 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(summary_value_text(value))
                 item.setTextAlignment(Qt.AlignCenter)
                 if name == 'Harmonica':  # the cell is too narrow for "Low F#", spell it on hover
-                    item.setToolTip(harmonica_key_of_shift(shift))
+                    item.setToolTip(harmonica_key_of_shift(shift + self.key_shift()))
 
                 if colored and value != '':
                     item.setForeground(QColor(0, 155, 0) if value == 0 else QColor(255, 0, 0))
@@ -1942,6 +1992,16 @@ class MainWindow(QMainWindow):
             self.auto_update_output_file()
             self.clear_summary()
 
+        if args.key:
+            key = parse_diatonic_key(args.key)
+            if key is None:
+                argument_error(f'unsupported harmonica key: "{args.key}", '
+                               f'use one of: {", ".join(DIATONIC_KEY_NAMES)}')
+                return False
+            self.key_combo.setCurrentIndex(DIATONIC_KEY_NAMES.index(key))
+            self.auto_update_output_file()
+            self.clear_summary()
+
         if args.semitones is not None:
             self.semitones_shift_edit.setText(str(args.semitones))
             self.semitones_shift_changed()
@@ -2079,6 +2139,8 @@ class MainWindow(QMainWindow):
         # update output filename according to input filename and selected mode
         if self.input_file:
             out_postfix = self.out_postfix[self.text_mode_combo.currentIndex()]
+            if self.text_mode_combo.currentIndex() == 4:  # the diatonic harmonica of the chosen key
+                out_postfix = 'Diatonic' + self.diatonic_key().replace(' ', '')
             inPathFile, inFileExt = os.path.splitext(self.input_file)
             inFileExt = inFileExt.lower()  # '.xml'
             if self.semitones_shift != 0:
@@ -2099,10 +2161,11 @@ class MainWindow(QMainWindow):
         self.measures_changed()    # in case the user updated the measures text box manually
         self.output_file = self.output_file_edit.text()  # in case the user update the text box manually
         index = self.text_mode_combo.currentIndex()
+        keyShift = self.key_shift()
         if saveOutput:
-            all_notes,all_text = add_text_to_notes(self.input_file, self.output_file, index, self.semitones_shift, self.selected_staves, self.measures)
+            all_notes,all_text = add_text_to_notes(self.input_file, self.output_file, index, self.semitones_shift, self.selected_staves, self.measures, keyShift)
         else:
-            all_notes,all_text = add_text_to_notes(self.input_file, '', index, self.semitones_shift, self.selected_staves, self.measures)
+            all_notes,all_text = add_text_to_notes(self.input_file, '', index, self.semitones_shift, self.selected_staves, self.measures, keyShift)
         self.consoleViewer.clear()
         if self.instrument_staves:
             self.consoleViewer.append('Annotated Staves:')
@@ -2118,7 +2181,8 @@ class MainWindow(QMainWindow):
         self.summary_counts = count_alterations(all_text)
         if index in HARMONICA_MODES:  # calculate every semitones shift, not only the selected one
             self.summary_counts_per_shift = count_all_shifts(self.input_file, index, SEMITONES_SHIFTS,
-                                                             self.selected_staves, self.measures)
+                                                             self.selected_staves, self.measures,
+                                                             keyShift)
         else:
             self.summary_counts_per_shift = None
         self.update_summary()
@@ -2229,6 +2293,18 @@ def text_mode_index(text):
     return None
 
 
+def parse_diatonic_key(text):
+    # a harmonica key given on the command line, by its name ('Bb', 'Low F') or by the short form
+    # the table shows ('LF'), in any case and with or without the space. None if it is not a key
+    wanted = text.strip().lower().replace(' ', '')
+    for shift in DIATONIC_KEY_SHIFTS:
+        full = harmonica_key_of_shift(shift)
+        short = harmonica_key_of_shift(shift, short=True)
+        if wanted in (full.lower().replace(' ', ''), short.lower()):
+            return full
+    return None
+
+
 def parse_staves_indexes(text, instrument_staves):
     # the staves given on the command line as 1 based indexes, for example '1,2'.
     # returns their keys, or None if the text is not a valid list of indexes of this file
@@ -2262,6 +2338,11 @@ def parse_arguments(argv):
                         help='the MusicXML file to load (.xml or .musicxml)')
     parser.add_argument('-t', '--text-mode', default='',
                         help=f'the annotation to calculate, by name or by index: {modes}')
+    parser.add_argument('-k', '--key', default='',
+                        help='key of the diatonic harmonica, only used by the Diatonic text mode: '
+                             'one of the 12 standard keys from G to F#, or one of the "Low" and '
+                             f'"High" models, for example: A, Bb, "Low F", LF '
+                             f'(default: {DIATONIC_DEFAULT_KEY})')
     parser.add_argument('-s', '--semitones', type=int, default=None,
                         help='semitones shift, a whole number, for example: -3')
     parser.add_argument('-i', '--instruments', default='',

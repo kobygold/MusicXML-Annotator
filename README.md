@@ -23,12 +23,18 @@ The tool supports the following annotations, the name in brackets is the one use
 | 1 | Chromatic Harmonica - 10 holes | `Chromatic10` |
 | 2 | Chromatic Harmonica - 12 holes | `Chromatic12` |
 | 3 | Chromatic Harmonica - 16 holes | `Chromatic16` |
-| 4 | Diatonic Harmonica (C) | `DiatonicC` |
+| 4 | Diatonic Harmonica | `DiatonicC` |
 | 5 | Trumpet | `Trumpet` |
 | 6 | Baritone | `Baritone` |
 | 7 | Tuba | `Tuba` |
 | 8 | Recorder (Baroque Recorder) | `Recorder` |
 | 9 | English+Hebrew Note Names | `English` |
+
+For the Diatonic Harmonica, a second pull-down menu appears to the right of the text mode, holding the
+key of the harmonica to write the annotation for: the 12 standard keys from G to F#, plus the "Low"
+and the "High" models, 25 in all. It defaults to C, and it is hidden for every other text mode.
+Picking another key is the same as reading a C harmonica a few semitones away, so the key and the
+"Semitones Shift" simply add up, and the key also lands in the output file name (`-DiatonicA`).
 
 Choose an output folder and file name (by default the output folder will be the same as the input folder,
 and file name will append the annotation type and the semitones shift to the input file name).
@@ -78,7 +84,8 @@ harmonica each shift stands for: shifting the notes by N semitones and reading t
 gives the very same holes and bends as playing the original notes on a harmonica pitched N semitones
 below C, so shifting by +2 is the same as picking up a Bb harmonica. The standard keys run from G to
 F#, and outside of that band the row names the "Low" and the "High" models the way players write
-them - LF# for a Low F#, HG for a High G - with the full name on hover.
+them - LF# for a Low F#, HG for a High G - with the full name on hover. The row follows the key
+picked next to the text mode, so the column of shift 0 always names that key.
 
 For the Diatonic Harmonica the table also holds an **Average Difficulty** row: every note is given a
 difficulty according to the way it is played (0 for a plain blow or draw note, 1 for a half step draw
@@ -109,12 +116,13 @@ your own playing.
 The GUI can also be opened directly on a file, with the "Calc" operation already done, by giving its
 settings on the command line. Every argument is optional, without any of them the GUI just opens empty:
 
-	python music_annotator.py song.xml -t DiatonicC -s 3 -i 1,2 -m 5-11
+	python music_annotator.py song.xml -t DiatonicC -k A -s 3 -i 1,2 -m 5-11
 
 | argument | meaning |
 |----------|---------|
 | `input_file` | the MusicXML file to load (.xml or .musicxml) |
 | `-t`, `--text-mode` | the annotation, by name (`Hebrew`, `Chromatic10`, `Chromatic12`, `Chromatic16`, `DiatonicC`, `Trumpet`, `Baritone`, `Tuba`, `Recorder`, `English`) or by its index (0-9) |
+| `-k`, `--key` | key of the diatonic harmonica, used by the Diatonic text mode only: one of the 12 standard keys from `G` to `F#`, or one of the `Low` and `High` models, by name or by its short form - `A`, `Bb`, `"Low F"`, `LF` (default: `C`) |
 | `-s`, `--semitones` | semitones shift, a whole number, for example: `-3` |
 | `-i`, `--instruments` | 1 based indexes of the staves to annotate, for example: `1,2` - in the order they are listed in the "Instruments" dialog (default: all of them) |
 | `-m`, `--measures` | measures to annotate, for example: `5-11` or `3` or `1-4,9,12-16` (default: all of them) |
